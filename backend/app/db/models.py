@@ -26,3 +26,22 @@ class Thread(Base):
     status = Column(String(50), default="initiated", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+class Brief(Base):
+    __tablename__ = "briefs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id = Column(UUID(as_uuid=True), ForeignKey("threads.thread_id", ondelete="CASCADE"), nullable=False, index=True)
+    ticker = Column(String(20), nullable=False, index=True)
+    brief_content = Column(JSON, nullable=False)  
+    revision_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+class Annotation(Base):
+    __tablename__ = "annotations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    brief_id = Column(UUID(as_uuid=True), ForeignKey("briefs.id", ondelete="CASCADE"), nullable=False, index=True)
+    section_id = Column(String(100), nullable=False)  
+    comment = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
