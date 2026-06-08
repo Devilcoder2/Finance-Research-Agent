@@ -68,3 +68,12 @@ class CostMetric(Base):
     latency_seconds = Column(Float, default=0.0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+class LongTermMemory(Base):
+    __tablename__ = "long_term_memory"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    ticker = Column(String(20), nullable=False, index=True)
+    embedding = Column(Vector(1536), nullable=False)
+    memory_text = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
