@@ -39,3 +39,36 @@ class ScraperState(BaseModel):
     scraped_filings: List[SecFiling] = Field(default_factory=list)
     scraped_transcript: Optional[EarningsTranscript] = None
     error: Optional[str] = None
+
+
+
+# 2. QUANT SUBGRAPH SCHEMAS 
+class FinancialMultiples(BaseModel): 
+    pe_ratio: Optional[float] = Field(None, description="Price to Earnings ratio")
+    ev_ebitda: Optional[float] = Field(None, description="Enterprise Value to EBITDA")
+    debt_to_equity: Optional[float] = Field(None, description="Total Debt to Total Equity ratio")
+    roe: Optional[float] = Field(None, description="Return on Equity")
+    free_cash_flow_yield: Optional[float] = Field(None, description="Free Cash Flow Yield")
+
+class PeerMultiple(BaseModel): 
+    ticker: str
+    pe_ratio: Optional[float] = None
+    ev_ebitda: Optional[float] = None
+
+class QuantOutput(BaseModel): 
+    """Unified container for quantitative financials and metrics."""
+    ticker: str
+    price_histroy_summary: str = Field(description="Brief text summary of historical prices")
+    ratios: FinancialMultiples
+    peers_comparison: List[PeerMultiple] = Field(default_factory=list)
+
+class QuantState(BaseModel): 
+    """Local state representing the state machine of the Quant Subgraph."""
+    ticker: str
+    price_history: Optional[Dict[str, Any]] = None
+    financials: Optional[Dict[str, Any]] = None
+    calculated_ratios: Optional[FinancialMultiples] = None
+    peers: List[str] = Field(default_factory=list)
+    peers_ratios: List[PeerMultiple] = Field(default_factory=list)
+    error: Optional[str] = None
+    
