@@ -71,4 +71,41 @@ class QuantState(BaseModel):
     peers: List[str] = Field(default_factory=list)
     peers_ratios: List[PeerMultiple] = Field(default_factory=list)
     error: Optional[str] = None
-    
+
+
+# 3. OVERALL RESEARCH & PORTFOLIO SCHEMAS 
+class SectionAnnotation(BaseModel):
+    section_id: str
+    comment: str
+
+class RevisionFeedback(BaseModel):
+    action: str = Field(description="Either 'approve' or 'reject'")
+    feedback: List[SectionAnnotation] = Field(default_factory=list)
+
+class InvestmentBrief(BaseModel):
+    """Pydantic model representing the final synthesized brief."""
+    ticker: str
+    executive_summary: str = Field(description="Core investment thesis summary")
+    business_overview: str = Field(description="Company operational model & key segments")
+    financial_analysis: str = Field(description="Analysis of quantitative multiples and performance metrics")
+    risk_factors: str = Field(description="Downside risk factors identified by synthesis and risk agent")
+    verdict: str = Field(description="Final analyst recommendation (e.g. Buy/Sell/Hold)")
+
+class TickerState(BaseModel):
+    """State representing the research run for a single Ticker."""
+    ticker: str
+    scraped_data: Optional[ScraperOutput] = None
+    quant_data: Optional[QuantOutput] = None
+    brief: Optional[InvestmentBrief] = None
+    revision_count: int = 0
+    feedback_notes: List[SectionAnnotation] = Field(default_factory=list)
+    status: str = Field(default="pending")
+    warnings: List[str] = Field(default_factory=list)
+
+class PortfolioState(BaseModel):
+    """Global top-level state managing multi-ticker parallel runs."""
+    tickers: List[str]
+    memories: List[str] = Field(default_factory=list, description="Relevant long-term memories retrieved")
+    ticker_briefs: Dict[str, InvestmentBrief] = Field(default_factory=dict)
+    portfolio_summary: Optional[str] = Field(None, description="Comparative portfolio summary analysis")
+    status: str = Field(default="initiated")
