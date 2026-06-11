@@ -112,3 +112,74 @@ async def fetch_sec_filings(ticker: str, form_type: str = "10-K") -> List[SecFil
         
         except Exception as e: 
             print(f"Error fetching SEC filings for CIK {cik}: {e}")
+
+
+# news & transcript tool (using tavily)
+
+async def scrape_news(query: str, n_results: int = 5) -> List[NewsEntry]: 
+    """Uses Tavily Search to locate and summarize recent financial news."""
+
+    api_key = os.getenv("TAVILY_API_KEY")
+    if not api_key: 
+        print("Warning: TAVILY_API_KEY environment variable is not set. Returning mock news.")
+        return [
+            NewsEntry(
+                title=f"Mock News for {query}",
+                url="https://example.com/mock-news",
+                content="Mock financial performance news snippet. Setup Tavily API key for real search.",
+                source="Mock Financial Times"
+            )
+        ]
+    
+    try: 
+        tavily = TavilyClient(api_key=api_key)
+        response = tavily.search(query=query, max_results=n_results)
+        
+        results = response.get("results", [])
+        news_entries = []
+        for r in results:
+            news_entries.append(NewsEntry(
+                title=r.get("title", "No Title"),
+                url=r.get("url", ""),
+                content=r.get("snippet", ""),
+                source=r.get("url", "").split("/")[2] if "/" in r.get("url", "") else "Web Search",
+                published_date=None
+            ))
+        return news_entries
+
+    except Exception as e: 
+        print(f"Error querying Tavily search for news: {e}")
+        return []
+
+async def fetch_earnings_transcript(ticker: str) -> Optional[EarningsTranscript]: 
+    """Uses Tavily search to fetch the latest public earnings call transcript text."""
+
+    api_key = os.getenv("TAVILY_API_KEY")
+    if not api_key:
+        return EarningsTranscript(
+            quarter="Q3",
+            year=2023,
+            content="Mock transcript details: Setup Tavily API key to extract actual call records."
+        )
+        
+    query = f"{ticker} latest earnings call transcript text Motley Fool"
+    try: 
+        tavily = TavilyClient(api_key=api_key)
+        response = tavily.search(query=query, max_results=1, include_raw_content=True)
+        results = response.get("results", [])
+
+        if results: 
+            best_match = results[0]
+            content = best_match.get("raw_content") or best_match.get("snippet", "")
+            if len(content) > 5000:
+                content = content[:5000] + "\n... [Truncated for brevity]"
+                
+            return EarningsTranscript(
+                quarter="Latest",
+                year=2024,
+                content=content
+            )
+    except Exception as e: 
+        print(f"Error fetching earnings transcript for {ticker}: {e}")
+    
+    return None
