@@ -183,3 +183,54 @@ async def fetch_earnings_transcript(ticker: str) -> Optional[EarningsTranscript]
         print(f"Error fetching earnings transcript for {ticker}: {e}")
     
     return None
+
+# LangGraph Scraper Subgraph Node Functions 
+async def fetch_sec_filings_node(state: ScraperState) -> dict:
+    """Node that fetches 10-K and 10-Q filings."""
+    
+    print(f"[Scraper Node] Fetching SEC filings for {state.ticker}...")
+    try:
+        filings_10k = await fetch_sec_filings(state.ticker, "10-K")
+        filings_10q = await fetch_sec_filings(state.ticker, "10-Q")
+        return {"scraped_filings": filings_10k + filings_10q}
+    except Exception as e:
+        return {"error": f"SEC Scraper Node failed: {str(e)}"}
+
+async def scrape_news_node(state: ScraperState) -> dict:
+    """Node that searches news using Tavily."""
+
+    ticker = state.ticker
+    query = state.news_query or f"{ticker} stock financial performance news"
+    print(f"[Scraper Node] Scraping news for {ticker} (Query: '{query}')...")
+    try:
+        news = await scrape_news(query, n_results=5)
+        return {"scraped_news": news}
+    except Exception as e:
+        return {"error": f"News Scraper Node failed: {str(e)}"}
+
+async def get_earnings_transcript_node(state: ScraperState) -> dict:
+    """Node that pulls latest transcript search."""
+
+    print(f"[Scraper Node] Scraping transcript for {state.ticker}...")
+    try:
+        transcript = await fetch_earnings_transcript(state.ticker)
+        return {"scraped_transcript": transcript}
+    except Exception as e:
+        return {"error": f"Transcript Scraper Node failed: {str(e)}"}
+
+
+# BUILD THE SUBGRAPH 
+builder = StateGraph(ScraperState)
+
+builder.add_node("fetch_sec_filings", fetch_sec_filings_node)
+builder.add_node("scrape_news", scrape_news_node)
+builder.add_node("get_earnings_transcript", get_earnings_transcript_node)
+
+builder.add_edge(START, "fetch_sec_filings")
+builder.add_edge(START, "scrape_news")
+builder.add_edge(START, "get_earnings_transcript")
+builder.add_edge("fetch_sec_filings", END)
+builder.add_edge("scrape_news", END)
+builder.add_edge("get_earnings_transcript", END)
+
+scraper_subgraph = builder.compile()
