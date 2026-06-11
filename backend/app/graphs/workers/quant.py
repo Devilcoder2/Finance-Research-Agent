@@ -133,3 +133,16 @@ async def fetch_peer_data_node(state: QuantState) -> dict:
             peers_ratios.append(PeerMultiple(ticker=peer_symbol))
             
     return {"peers_ratios": peers_ratios}
+
+builder = StateGraph(QuantState)
+
+builder.add_node("fetch_market_data", fetch_market_data_node)
+builder.add_node("calculate_ratios", calculate_ratios_node)
+builder.add_node("fetch_peer_data", fetch_peer_data_node)
+builder.add_edge(START, "fetch_market_data")
+builder.add_edge("fetch_market_data", "calculate_ratios")
+builder.add_edge("fetch_market_data", "fetch_peer_data")
+builder.add_edge("calculate_ratios", END)
+builder.add_edge("fetch_peer_data", END)
+
+quant_subgraph = builder.compile()
