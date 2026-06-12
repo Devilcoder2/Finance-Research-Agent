@@ -133,3 +133,43 @@ def fan_out_tickers_routing(state: PortfolioState):
     """Sends parallel jobs to research each ticker concurrently."""
     print(f"[Portfolio Graph] Fanning out parallel research for: {state.tickers}")
     return [Send("ticker_research", TickerState(ticker=t)) for t in state.tickers]
+
+async def generate_portfolio_summary_node(state: PortfolioState) -> dict:
+    """
+    Fans back in. Combines fanned-out ticker briefs and executes an LLM call 
+    to summarize and compare the stock profiles.
+    """
+    print(f"[Portfolio Graph] Fan-in. Synthesizing comparative summary for {state.tickers}...")
+    
+    briefs_list = []
+    for ticker, brief in state.ticker_briefs.items():
+        briefs_list.append(
+            f"--- {ticker} Investment Brief ---\n"
+            f"Executive Summary: {brief.executive_summary}\n"
+            f"Verdict: {brief.verdict}\n"
+        )
+    briefs_context = "\n".join(briefs_list)
+    
+    google_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+    if not google_key:
+        print("[Portfolio Graph] Mock summary compiled (no API key).")
+        summary = f"Mock Portfolio Summary comparing: {', '.join(state.tickers)}. Setup Gemini API key for comparative analysis."
+        return {"portfolio_summary": summary, "status": "completed"}
+        
+    try:
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=google_key, temperature=0.3)
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", (
+                "You are a Senior Investment Portfolio Manager. Read the fanned-out individual stock briefs "
+                "and write a highly professional, comparative summary table and analysis contrasting their "
+                "thesis potentials, valuations, and risk exposures."
+            )),
+            ("user", "Compare these briefs and compile the portfolio overview:\n\n{briefs_context}")
+        ])
+        
+        chain = prompt | llm
+        res = await chain.ainvoke({"briefs_context": briefs_context})
+        return {"portfolio_summary": res.content, "status": "completed"}
+    except Exception as e:
+        print(f"Error compiling portfolio summary: {e}")
+        return {"portfolio_summary": f"Error during summary: {str(e)}", "status": "failed"}
