@@ -101,3 +101,35 @@ async def human_interrupt_node(state: TickerState) -> dict:
             "feedback_notes": feedback,
             "revision_count": state.revision_count + 1
         }
+
+async def route_post_human_review(state: TickerState):
+    """Routes to completion, or loops back to synthesis if the analyst rejected the brief."""
+
+    if state.status == "completed":
+        return END
+    if state.revision_count > 3:
+        return "abort_max_revisions"
+        
+    return "run_synthesis"
+
+async def abort_max_revisions_node(state: TickerState) -> dict:
+    """Node representing failure state when revision threshold is breached."""
+
+    return {"status": "failed", "warnings": state.warnings + ["Aborted: Maximum revision limit of 3 exceeded."]}
+
+
+# PORTFOLIO GRAPH NODE FUNCTIONS & ROUTER
+async def load_memories_node(state: PortfolioState) -> dict:
+    """Queries vector storage (pgvector) to load long-term user research preferences."""
+
+    print(f"[Portfolio Graph] Initializing session. Retrieving memories for {state.tickers}...")
+    # Mock lookup; we will wire the actual pgvector later
+    mock_memories = [
+        "Analyst preference: Prefers conservative EV/EBITDA multiples in high-growth tech profiles."
+    ]
+    return {"memories": mock_memories}
+
+def fan_out_tickers_routing(state: PortfolioState):
+    """Sends parallel jobs to research each ticker concurrently."""
+    print(f"[Portfolio Graph] Fanning out parallel research for: {state.tickers}")
+    return [Send("ticker_research", TickerState(ticker=t)) for t in state.tickers]
