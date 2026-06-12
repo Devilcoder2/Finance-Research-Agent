@@ -19,7 +19,19 @@ async def init_db():
         # Base.metadata.create_all is perfect.
         await conn.run_sync(Base.metadata.create_all)
         
-    print("Database tables created successfully!")
+        # 3. Seed default analyst user
+        user_check = await conn.execute(text("SELECT id FROM users WHERE email = 'analyst@example.com';"))
+        user = user_check.fetchone()
+        if not user:
+            print("Seeding default analyst user...")
+            default_user_id = "00000000-0000-0000-0000-000000000000"
+            await conn.execute(text(
+                "INSERT INTO users (id, email, password_hash, created_at) "
+                "VALUES (:id, 'analyst@example.com', 'scrypt:32768:8:1$default_hash_value', NOW());"
+            ), {"id": default_user_id})
+            print(f"✅ Default analyst user seeded (ID: {default_user_id})")
+            
+    print("Database tables created and seeded successfully!")
     
     # 3. Verification checks
     print("\n--- Verifying Setup ---")
