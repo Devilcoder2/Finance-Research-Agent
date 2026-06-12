@@ -174,6 +174,10 @@ async def generate_portfolio_summary_node(state: PortfolioState) -> dict:
         print(f"Error compiling portfolio summary: {e}")
         return {"portfolio_summary": f"Error during summary: {str(e)}", "status": "failed"}
 
+def merge_ticker_briefs(state: PortfolioState):
+    """Aggregate all ticker briefs from ticker_research runs."""
+    return "generate_summary"
+
 # COMPILING THE SUBGRAPH
 ticker_builder = StateGraph(TickerState)
 
@@ -206,3 +210,17 @@ ticker_builder.add_edge("loop_back_synthesis", "run_synthesis")
 
 ticker_builder.add_edge("abort_max_revisions", END)
 ticker_subgraph = ticker_builder.compile()
+
+# COMPILE PORTFOLIO GRAPH
+portfolio_builder = StateGraph(PortfolioState)
+
+portfolio_builder.add_node("load_memories", load_memories_node)
+portfolio_builder.add_node("ticker_research", ticker_subgraph)
+portfolio_builder.add_node("generate_summary", generate_portfolio_summary_node)
+
+portfolio_builder.add_edge(START, "load_memories")
+portfolio_builder.add_conditional_edges("load_memories", fan_out_tickers_routing, ["ticker_research"])
+portfolio_builder.add_edge("ticker_research", "generate_summary")
+portfolio_builder.add_edge("generate_summary", END)
+
+portfolio_graph = portfolio_builder.compile()
