@@ -58,7 +58,7 @@ class PeerMultiple(BaseModel):
 class QuantOutput(BaseModel): 
     """Unified container for quantitative financials and metrics."""
     ticker: str
-    price_histroy_summary: str = Field(description="Brief text summary of historical prices")
+    price_history_summary: str = Field(description="Brief text summary of historical prices")
     ratios: FinancialMultiples
     peers_comparison: List[PeerMultiple] = Field(default_factory=list)
 
