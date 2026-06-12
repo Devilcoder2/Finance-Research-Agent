@@ -73,3 +73,31 @@ async def route_post_risk_check(state: TickerState):
 async def loop_back_synthesis_node(state: TickerState) -> dict:
     """Increments the revision counter when the Risk-Check rejects the brief."""
     return {"revision_count": state.revision_count + 1}
+
+async def human_interrupt_node(state: TickerState) -> dict:
+    """
+    Halts execution before final publication to capture human approvals or annotation comments.
+    """
+
+    print(f"[Ticker Graph] Interrupt breakpoint. Awaiting analyst review for {state.ticker}...")
+    review_payload = {
+        "ticker": state.ticker,
+        "brief": state.brief.model_dump() if state.brief else None,
+        "warnings": state.warnings
+    }
+    
+    decision = interrupt(review_payload)
+    
+    action = decision.get("action")  # 'approve' or 'reject'
+    feedback = decision.get("feedback", [])  # list of SectionAnnotation
+    
+    if action == "approve":
+        print(f"[Ticker Graph] Analyst APPROVED research brief for {state.ticker}.")
+        return {"status": "completed"}
+    else:
+        print(f"[Ticker Graph] Analyst REJECTED research brief for {state.ticker}. Feedback logged.")
+        return {
+            "status": "revision",
+            "feedback_notes": feedback,
+            "revision_count": state.revision_count + 1
+        }
