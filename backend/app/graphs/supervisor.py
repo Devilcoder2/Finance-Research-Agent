@@ -173,3 +173,36 @@ async def generate_portfolio_summary_node(state: PortfolioState) -> dict:
     except Exception as e:
         print(f"Error compiling portfolio summary: {e}")
         return {"portfolio_summary": f"Error during summary: {str(e)}", "status": "failed"}
+
+# COMPILING THE SUBGRAPH
+ticker_builder = StateGraph(TickerState)
+
+ticker_builder.add_node("run_scraper", run_scraper_node)
+ticker_builder.add_node("run_quant", run_quant_node)
+ticker_builder.add_node("run_synthesis", synthesis_subgraph)
+ticker_builder.add_node("run_risk_check", risk_check_subgraph)
+ticker_builder.add_node("loop_back_synthesis", loop_back_synthesis_node)
+ticker_builder.add_node("await_human_review", human_interrupt_node)
+ticker_builder.add_node("abort_max_revisions", abort_max_revisions_node)
+
+ticker_builder.add_edge(START, "run_scraper")
+ticker_builder.add_edge(START, "run_quant")
+
+ticker_builder.add_conditional_edges("run_synthesis", route_post_synthesis, {
+    "run_risk_check": "run_risk_check"
+})
+ticker_builder.add_conditional_edges("run_risk_check", route_post_risk_check, {
+    "loop_back_synthesis": "loop_back_synthesis",
+    "abort_max_revisions": "abort_max_revisions",
+    "await_human_review": "await_human_review"
+})
+ticker_builder.add_conditional_edges("await_human_review", route_post_human_review, {
+    END: END,
+    "abort_max_revisions": "abort_max_revisions",
+    "run_synthesis": "run_synthesis"
+})
+
+ticker_builder.add_edge("loop_back_synthesis", "run_synthesis")
+
+ticker_builder.add_edge("abort_max_revisions", END)
+ticker_subgraph = ticker_builder.compile()
