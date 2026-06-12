@@ -1,5 +1,5 @@
 from email.policy import default
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Annotated
 # pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field
 
@@ -101,11 +101,22 @@ class TickerState(BaseModel):
     feedback_notes: List[SectionAnnotation] = Field(default_factory=list)
     status: str = Field(default="pending")
     warnings: List[str] = Field(default_factory=list)
+    ticker_briefs: Dict[str, InvestmentBrief] = Field(default_factory=dict)
+
+def reduce_status(left: str, right: str) -> str:
+    return right
+
+def reduce_briefs(left: Dict[str, InvestmentBrief], right: Dict[str, InvestmentBrief]) -> Dict[str, InvestmentBrief]:
+    if left is None:
+        left = {}
+    if right is None:
+        right = {}
+    return {**left, **right}
 
 class PortfolioState(BaseModel):
     """Global top-level state managing multi-ticker parallel runs."""
     tickers: List[str]
     memories: List[str] = Field(default_factory=list, description="Relevant long-term memories retrieved")
-    ticker_briefs: Dict[str, InvestmentBrief] = Field(default_factory=dict)
+    ticker_briefs: Annotated[Dict[str, InvestmentBrief], reduce_briefs] = Field(default_factory=dict)
     portfolio_summary: Optional[str] = Field(None, description="Comparative portfolio summary analysis")
-    status: str = Field(default="initiated")
+    status: Annotated[str, reduce_status] = Field(default="initiated")

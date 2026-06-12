@@ -93,7 +93,10 @@ async def human_interrupt_node(state: TickerState) -> dict:
     
     if action == "approve":
         print(f"[Ticker Graph] Analyst APPROVED research brief for {state.ticker}.")
-        return {"status": "completed"}
+        return {
+            "status": "completed",
+            "ticker_briefs": {state.ticker: state.brief}
+        }
     else:
         print(f"[Ticker Graph] Analyst REJECTED research brief for {state.ticker}. Feedback logged.")
         return {
@@ -107,7 +110,7 @@ async def route_post_human_review(state: TickerState):
 
     if state.status == "completed":
         return END
-    if state.revision_count > 3:
+    if state.revision_count >= 3:
         return "abort_max_revisions"
         
     return "run_synthesis"
@@ -191,6 +194,8 @@ ticker_builder.add_node("abort_max_revisions", abort_max_revisions_node)
 
 ticker_builder.add_edge(START, "run_scraper")
 ticker_builder.add_edge(START, "run_quant")
+ticker_builder.add_edge("run_scraper", "run_synthesis")
+ticker_builder.add_edge("run_quant", "run_synthesis")
 
 ticker_builder.add_conditional_edges("run_synthesis", route_post_synthesis, {
     "run_risk_check": "run_risk_check"

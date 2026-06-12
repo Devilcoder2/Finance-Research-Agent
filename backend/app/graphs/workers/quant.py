@@ -49,7 +49,16 @@ async def fetch_market_data_node(state: QuantState) -> dict:
         
         info = ticker.info or {}
         def safe_to_dict(df):
-            return df.to_dict() if df is not None and not df.empty else {}
+            if df is not None and not df.empty:
+                # pyrefly: ignore [missing-import]
+                import numpy as np
+                df_clean = df.copy()
+                df_clean.index = [str(i) for i in df_clean.index]
+                df_clean.columns = [str(c) for c in df_clean.columns]
+                # Replace float NaN with None for clean serialization
+                df_clean = df_clean.replace({np.nan: None})
+                return df_clean.to_dict()
+            return {}
         
         financials = {
             "info": info,
