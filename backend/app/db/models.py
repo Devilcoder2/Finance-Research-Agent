@@ -74,6 +74,6 @@ class LongTermMemory(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     ticker = Column(String(20), nullable=False, index=True)
-    embedding = Column(Vector(1536), nullable=False)
+    embedding = Column(Vector(768), nullable=False)
     memory_text = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

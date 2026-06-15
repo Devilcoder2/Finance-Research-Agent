@@ -1,5 +1,8 @@
 import os
+import uuid
 from typing import List, Dict, Any
+from backend.app.services.vector_store import search_memories
+from backend.app.db.session import async_session
 # pyrefly: ignore [missing-import]
 from langgraph.graph import StateGraph, START, END
 # pyrefly: ignore [missing-import]
@@ -126,16 +129,33 @@ async def load_memories_node(state: PortfolioState) -> dict:
     """Queries vector storage (pgvector) to load long-term user research preferences."""
 
     print(f"[Portfolio Graph] Initializing session. Retrieving memories for {state.tickers}...")
-    # Mock lookup; we will wire the actual pgvector later
-    mock_memories = [
-        "Analyst preference: Prefers conservative EV/EBITDA multiples in high-growth tech profiles."
-    ]
-    return {"memories": mock_memories}
+    user_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    try:
+        async with async_session() as session:
+            memories = await search_memories(
+                db=session,
+                user_id=user_id,
+                tickers=state.tickers,
+                limit=10
+            )
+            print(f"[Portfolio Graph] Successfully retrieved {len(memories)} memory entries.")
+            return {"memories": memories}
+    except Exception as e:
+        print(f"Error loading memories from database: {e}. Falling back to empty memories list.")
+        return {"memories": []}
 
 def fan_out_tickers_routing(state: PortfolioState):
-    """Sends parallel jobs to research each ticker concurrently."""
+    """Sends parallel jobs to research each ticker concurrently, passing relevant memories."""
     print(f"[Portfolio Graph] Fanning out parallel research for: {state.tickers}")
-    return [Send("ticker_research", TickerState(ticker=t)) for t in state.tickers]
+    
+    jobs = []
+    for t in state.tickers:
+        ticker_memories = [
+            m for m in state.memories
+            if t.upper() in m.upper() or f"FOR {t.upper()}" in m.upper()
+        ]
+        jobs.append(Send("ticker_research", TickerState(ticker=t, memories=ticker_memories)))
+    return jobs
 
 async def generate_portfolio_summary_node(state: PortfolioState) -> dict:
     """

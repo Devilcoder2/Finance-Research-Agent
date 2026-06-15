@@ -97,6 +97,10 @@ async def generate_brief_node(state: TickerState) -> dict:
     if state.feedback_notes:
         feedback_context = "\n".join([f"- Section '{f.section_id}': {f.comment}" for f in state.feedback_notes])
 
+    memories_context = "No historical analyst preferences found for this stock."
+    if getattr(state, "memories", None):
+        memories_context = "\n".join([f"- {m}" for m in state.memories])
+
     # 2. Check LLM availability
     structured_llm = get_synthesis_llm()
     if not structured_llm:
@@ -111,10 +115,12 @@ async def generate_brief_node(state: TickerState) -> dict:
             "You must split your output into the structured fields required: executive_summary, "
             "business_overview, financial_analysis, risk_factors, and verdict.\n"
             "Format the brief according to the final output Pydantic model structure. "
-            "Incorporate all provided scraping context and quantitative financial multiples."
+            "Incorporate all provided scraping context, quantitative financial multiples, and long-term analyst preferences."
         )),
         ("user", (
             "Please generate an investment brief for {ticker}.\n\n"
+            "--- Long-Term Analyst Preferences & Historical Feedback ---\n"
+            "{memories_context}\n\n"
             "--- Quantitative Data & Multiples ---\n"
             "{quant_context}\n\n"
             "--- Scraped News Summaries ---\n"
@@ -133,6 +139,7 @@ async def generate_brief_node(state: TickerState) -> dict:
         chain = prompt | structured_llm
         brief = await chain.ainvoke({
             "ticker": state["ticker"],
+            "memories_context": memories_context,
             "quant_context": quant_context,
             "news_context": news_context,
             "filings_context": filings_context,

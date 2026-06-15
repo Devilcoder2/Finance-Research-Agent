@@ -26,6 +26,7 @@ from backend.app.db.session import get_db, DATABASE_URL, async_session
 from backend.app.db.models import Thread, Brief, Annotation, Evaluation
 from backend.app.graphs.supervisor import portfolio_builder
 from backend.app.graphs.state import SectionAnnotation, PortfolioState
+from backend.app.services.vector_store import save_memory
 
 router = APIRouter()
 
@@ -201,6 +202,15 @@ async def resume_research(req: ResearchResumeRequest, db: AsyncSession = Depends
                     comment=fb.comment
                 )
                 db.add(db_ann)
+                
+                # Save annotation feedback as a long-term memory embedding
+                await save_memory(
+                    db=db,
+                    user_id=db_thread.user_id,
+                    ticker=req.ticker,
+                    section_id=fb.section_id,
+                    comment=fb.comment
+                )
             await db.commit()
             
     try:

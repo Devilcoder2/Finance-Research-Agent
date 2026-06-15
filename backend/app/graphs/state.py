@@ -94,6 +94,7 @@ class InvestmentBrief(BaseModel):
 class TickerState(BaseModel):
     """State representing the research run for a single Ticker."""
     ticker: str
+    memories: List[str] = Field(default_factory=list)
     scraped_data: Optional[ScraperOutput] = None
     quant_data: Optional[QuantOutput] = None
     brief: Optional[InvestmentBrief] = None
@@ -113,10 +114,23 @@ def reduce_briefs(left: Dict[str, InvestmentBrief], right: Dict[str, InvestmentB
         right = {}
     return {**left, **right}
 
+def reduce_memories(left: List[str], right: List[str]) -> List[str]:
+    if left is None:
+        left = []
+    if right is None:
+        right = []
+    seen = set()
+    res = []
+    for item in left + right:
+        if item not in seen:
+            seen.add(item)
+            res.append(item)
+    return res
+
 class PortfolioState(BaseModel):
     """Global top-level state managing multi-ticker parallel runs."""
     tickers: List[str]
-    memories: List[str] = Field(default_factory=list, description="Relevant long-term memories retrieved")
+    memories: Annotated[List[str], reduce_memories] = Field(default_factory=list, description="Relevant long-term memories retrieved")
     ticker_briefs: Annotated[Dict[str, InvestmentBrief], reduce_briefs] = Field(default_factory=dict)
     portfolio_summary: Optional[str] = Field(None, description="Comparative portfolio summary analysis")
     status: Annotated[str, reduce_status] = Field(default="initiated")
