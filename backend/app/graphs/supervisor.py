@@ -98,7 +98,9 @@ async def human_interrupt_node(state: TickerState) -> dict:
         print(f"[Ticker Graph] Analyst APPROVED research brief for {state.ticker}.")
         return {
             "status": "completed",
-            "ticker_briefs": {state.ticker: state.brief}
+            "ticker_briefs": {state.ticker: state.brief},
+            "ticker_scraped_data": {state.ticker: state.scraped_data},
+            "ticker_quant_data": {state.ticker: state.quant_data}
         }
     else:
         print(f"[Ticker Graph] Analyst REJECTED research brief for {state.ticker}. Feedback logged.")

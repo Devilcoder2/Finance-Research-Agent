@@ -127,10 +127,19 @@ def reduce_memories(left: List[str], right: List[str]) -> List[str]:
             res.append(item)
     return res
 
+def reduce_dict(left: dict, right: dict) -> dict:
+    if left is None:
+        left = {}
+    if right is None:
+        right = {}
+    return {**left, **right}
+
 class PortfolioState(BaseModel):
     """Global top-level state managing multi-ticker parallel runs."""
     tickers: List[str]
     memories: Annotated[List[str], reduce_memories] = Field(default_factory=list, description="Relevant long-term memories retrieved")
-    ticker_briefs: Annotated[Dict[str, InvestmentBrief], reduce_briefs] = Field(default_factory=dict)
+    ticker_briefs: Annotated[Dict[str, InvestmentBrief], reduce_dict] = Field(default_factory=dict)
+    ticker_scraped_data: Annotated[Dict[str, ScraperOutput], reduce_dict] = Field(default_factory=dict)
+    ticker_quant_data: Annotated[Dict[str, QuantOutput], reduce_dict] = Field(default_factory=dict)
     portfolio_summary: Optional[str] = Field(None, description="Comparative portfolio summary analysis")
     status: Annotated[str, reduce_status] = Field(default="initiated")

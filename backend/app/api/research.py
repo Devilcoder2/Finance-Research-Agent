@@ -25,8 +25,9 @@ from langgraph.types import Command
 from backend.app.db.session import get_db, DATABASE_URL, async_session
 from backend.app.db.models import Thread, Brief, Annotation, Evaluation
 from backend.app.graphs.supervisor import portfolio_builder
-from backend.app.graphs.state import SectionAnnotation, PortfolioState
+from backend.app.graphs.state import SectionAnnotation, PortfolioState, InvestmentBrief
 from backend.app.services.vector_store import save_memory
+from backend.app.services.evaluator import evaluate_brief
 
 router = APIRouter()
 
@@ -53,6 +54,73 @@ async def close_pool():
     if global_pool is not None:
         await global_pool.close()
         global_pool = None
+
+async def run_evaluation_for_briefs(db: AsyncSession, thread_uuid: uuid.UUID, state_values: dict):
+    """
+    Retrieves briefs and raw sources from state, formats them, and runs the LLM evaluator to persist audit scores.
+    """
+    briefs = state_values.get("ticker_briefs", {})
+    scraped_data_dict = state_values.get("ticker_scraped_data", {})
+    quant_data_dict = state_values.get("ticker_quant_data", {})
+    
+    print(f"[API Evaluator] Running audit evaluations for briefs in thread {thread_uuid}...")
+    for ticker, brief in briefs.items():
+        brief_res = await db.execute(
+            select(Brief).where(Brief.thread_id == thread_uuid, Brief.ticker == ticker)
+        )
+        db_brief = brief_res.scalar_one_or_none()
+        if not db_brief:
+            print(f"[API Evaluator] Warning: Brief record for {ticker} not found in DB. Skipping.")
+            continue
+            
+        scraped_data = scraped_data_dict.get(ticker)
+        quant_data = quant_data_dict.get(ticker)
+        
+        # 1. Format raw news
+        news_list = []
+        if scraped_data and hasattr(scraped_data, "news") and scraped_data.news:
+            for n in scraped_data.news:
+                news_list.append(f"Title: {n.title}\nSource: {n.source}\nContent: {n.content}")
+        raw_news_str = "\n---\n".join(news_list) if news_list else "No raw news sources available."
+
+        # 2. Format transcript
+        raw_transcript_str = "No transcript available."
+        if scraped_data and hasattr(scraped_data, "transcript") and scraped_data.transcript:
+            raw_transcript_str = scraped_data.transcript.content
+
+        # 3. Format quant
+        raw_quant_str = "No quantitative metrics available."
+        if quant_data:
+            r = quant_data.ratios
+            raw_quant_str = (
+                f"Price History: {quant_data.price_history_summary}\n"
+                f"P/E: {r.pe_ratio or 'N/A'}\n"
+                f"EV/EBITDA: {r.ev_ebitda or 'N/A'}\n"
+                f"Debt/Equity: {r.debt_to_equity or 'N/A'}\n"
+                f"ROE: {r.roe or 'N/A'}\n"
+                f"FCF Yield: {r.free_cash_flow_yield or 'N/A'}"
+            )
+            
+        brief_model = InvestmentBrief(
+            ticker=ticker,
+            executive_summary=brief.executive_summary if hasattr(brief, "executive_summary") else brief.get("executive_summary", ""),
+            business_overview=brief.business_overview if hasattr(brief, "business_overview") else brief.get("business_overview", ""),
+            financial_analysis=brief.financial_analysis if hasattr(brief, "financial_analysis") else brief.get("financial_analysis", ""),
+            risk_factors=brief.risk_factors if hasattr(brief, "risk_factors") else brief.get("risk_factors", ""),
+            verdict=brief.verdict if hasattr(brief, "verdict") else brief.get("verdict", "")
+        )
+        
+        try:
+            await evaluate_brief(
+                brief_id=db_brief.id,
+                brief=brief_model,
+                raw_news=raw_news_str,
+                raw_transcript=raw_transcript_str,
+                raw_quant=raw_quant_str,
+                db_session=db
+            )
+        except Exception as e:
+            print(f"[API Evaluator] Error evaluating brief for ticker {ticker}: {e}")
 
 # Pydantic schemas for REST controller requests
 class ResearchStartRequest(BaseModel):
@@ -247,6 +315,8 @@ async def resume_research(req: ResearchResumeRequest, db: AsyncSession = Depends
                     )
                     db.add(db_brief)
         await db.commit()
+        if not state_info.next:
+            await run_evaluation_for_briefs(db, thread_uuid, state_info.values)
         
         return {
             "status": db_thread.status,
@@ -339,6 +409,8 @@ async def stream_research(thread_id: str):
                             session.add(db_brief)
                     yield f"data: {json.dumps({'event': 'completed'})}\n\n"
                 await session.commit()
+                if not state_info.next:
+                    await run_evaluation_for_briefs(session, thread_uuid, state_info.values)
                 
         except Exception as e:
             async with async_session() as session:
