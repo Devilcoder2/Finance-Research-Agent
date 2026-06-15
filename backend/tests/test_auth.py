@@ -1,5 +1,7 @@
+# pyrefly: ignore [missing-import]
 import pytest
 import uuid
+# pyrefly: ignore [missing-import]
 from httpx import AsyncClient, ASGITransport
 from backend.app.main import app
 from backend.app.api.auth import (
@@ -87,4 +89,21 @@ async def test_auth_signup_and_login_lifecycle():
         assert threads_success.status_code == 200
         assert isinstance(threads_success.json(), list)
 
+    await close_pool()
+
+@pytest.mark.asyncio
+async def test_seeded_user_login():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        login_res = await ac.post(
+            "/api/auth/login",
+            json={"email": "analyst@example.com", "password": "password"}
+        )
+        assert login_res.status_code == 200
+        login_data = login_res.json()
+        assert "access_token" in login_data
+        
+        token = login_data["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        threads_res = await ac.get("/api/research/threads", headers=headers)
+        assert threads_res.status_code == 200
     await close_pool()

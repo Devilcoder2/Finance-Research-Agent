@@ -56,9 +56,7 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed_password: str) -> bool:
     try:
-        # Fallback for the default seeded user (or standard tests where hash="hash")
-        if hashed_password == "scrypt:32768:8:1$default_hash_value" and password == "password":
-            return True
+        # Fallback for standard tests where hash="hash"
         if hashed_password == "hash" and password == "hash":
             return True
             

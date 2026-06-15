@@ -5,6 +5,7 @@ from sqlalchemy import text
 from backend.app.db.session import engine, Base
 # Import all models to ensure they are registered on the Base metadata
 from backend.app.db.models import User, Thread, Brief, Annotation, Evaluation, CostMetric, LongTermMemory
+from backend.app.api.auth import hash_password
 
 async def init_db():
     print("Connecting to PostgreSQL...")
@@ -27,16 +28,24 @@ async def init_db():
         ))
         
         # 3. Seed default analyst user
-        user_check = await conn.execute(text("SELECT id FROM users WHERE email = 'analyst@example.com';"))
+        user_check = await conn.execute(text("SELECT id, password_hash FROM users WHERE email = 'analyst@example.com';"))
         user = user_check.fetchone()
+        default_user_id = "00000000-0000-0000-0000-000000000000"
+        password_hash = hash_password("password")
         if not user:
             print("Seeding default analyst user...")
-            default_user_id = "00000000-0000-0000-0000-000000000000"
             await conn.execute(text(
                 "INSERT INTO users (id, email, password_hash, created_at) "
-                "VALUES (:id, 'analyst@example.com', 'scrypt:32768:8:1$default_hash_value', NOW());"
-            ), {"id": default_user_id})
+                "VALUES (:id, 'analyst@example.com', :password_hash, NOW());"
+            ), {"id": default_user_id, "password_hash": password_hash})
             print(f"✅ Default analyst user seeded (ID: {default_user_id})")
+        else:
+            if user[1] == "scrypt:32768:8:1$default_hash_value":
+                print("Updating default analyst user's password hash from fallback to properly computed hash...")
+                await conn.execute(text(
+                    "UPDATE users SET password_hash = :password_hash WHERE id = :id;"
+                ), {"id": user[0], "password_hash": password_hash})
+                print("✅ Default analyst user's password hash updated successfully.")
             
     print("Database tables created and seeded successfully!")
     
