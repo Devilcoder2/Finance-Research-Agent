@@ -1,9 +1,11 @@
 import os
+import logging
 # pyrefly: ignore [missing-import]
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import declarative_base
 
+logger = logging.getLogger("backend.db.session")
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
@@ -31,7 +33,8 @@ async def get_db():
         try: 
             yield session
             await session.commit()
-        except Exception: 
+        except Exception as e: 
+            logger.error(f"Database transaction error. Rolling back session: {str(e)}", exc_info=True)
             await session.rollback()
             raise
         finally: 
