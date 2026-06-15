@@ -2,6 +2,12 @@
 from fastapi import FastAPI, Request
 # pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
+# pyrefly: ignore [missing-import]
+from fastapi.responses import JSONResponse
+# pyrefly: ignore [missing-import]
+from fastapi.exceptions import RequestValidationError
+# pyrefly: ignore [missing-import]
+from starlette.exceptions import HTTPException as StarletteHTTPException
 import time
 import logging
 
@@ -21,6 +27,25 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Global Exception Handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, (StarletteHTTPException, RequestValidationError)):
+        raise exc
+        
+    logger.error(
+        f"Global exception intercepted at {request.url.path}: {str(exc)}", 
+        exc_info=True
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "InternalServerError",
+            "message": "An unexpected server fault occurred. Please contact the administrator.",
+            "detail": str(exc)
+        }
+    )
+
 # HTTP middleware to log API requests & execution times
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -30,11 +55,22 @@ async def log_requests(request: Request, call_next):
         response = await call_next(request)
         return response
     except Exception as e:
+        if isinstance(e, (StarletteHTTPException, RequestValidationError)):
+            raise e
+            
         logger.error(
             f"Uncaught exception during request {request.method} {request.url.path}: {str(e)}", 
             exc_info=True
         )
-        raise
+        response = JSONResponse(
+            status_code=500,
+            content={
+                "error": "InternalServerError",
+                "message": "An unexpected server fault occurred. Please contact the administrator.",
+                "detail": str(e)
+            }
+        )
+        return response
     finally:
         duration_ms = (time.time() - start_time) * 1000
         status_code = response.status_code if response else 500

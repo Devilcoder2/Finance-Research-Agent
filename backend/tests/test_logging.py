@@ -50,9 +50,8 @@ async def test_database_rollback_logging(caplog):
     caplog.set_level(logging.ERROR)
     
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        # We expect a 500 error since ValueError is raised
-        with pytest.raises(ValueError, match="Simulated database transaction error"):
-            await ac.get("/test-db-error")
+        response = await ac.get("/test-db-error")
+        assert response.status_code == 500
             
         # Verify that our database session logger captured the rollback trace details
         db_logs = [r for r in caplog.records if r.name == "backend.db.session"]
