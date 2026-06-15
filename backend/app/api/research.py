@@ -3,6 +3,16 @@ import uuid
 import json
 import asyncio
 import time
+import subprocess
+
+def get_git_commit_hash() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"], 
+            stderr=subprocess.DEVNULL
+        ).decode("utf-8").strip()
+    except Exception:
+        return "unknown"
 from typing import List, Dict, Any, Optional
 # pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field
@@ -240,10 +250,18 @@ async def resume_research(req: ResearchResumeRequest, db: AsyncSession = Depends
     await checkpointer.setup()
     compiled_app = portfolio_builder.compile(checkpointer=checkpointer)
     
+    user_id = str(db_thread.user_id)
+    git_commit_hash = get_git_commit_hash()
     tracker = TokenTrackerCallback()
     config = {
         "configurable": {"thread_id": req.thread_id},
-        "callbacks": [tracker]
+        "callbacks": [tracker],
+        "tags": [f"thread-{req.thread_id}", f"user-{user_id}"],
+        "metadata": {
+            "thread_id": req.thread_id,
+            "user_id": user_id,
+            "git_commit_hash": git_commit_hash
+        }
     }
     state_info = await compiled_app.aget_state(config)
     
@@ -352,16 +370,24 @@ async def stream_research(thread_id: str):
                 yield f"data: {json.dumps({'event': 'error', 'message': 'Thread not found'})}\n\n"
                 return
             tickers = db_thread.tickers
+            user_id = str(db_thread.user_id)
             
         pool = await get_pool()
         checkpointer = AsyncPostgresSaver(pool)
         await checkpointer.setup()
         compiled_app = portfolio_builder.compile(checkpointer=checkpointer)
         
+        git_commit_hash = get_git_commit_hash()
         tracker = TokenTrackerCallback()
         config = {
             "configurable": {"thread_id": thread_id},
-            "callbacks": [tracker]
+            "callbacks": [tracker],
+            "tags": [f"thread-{thread_id}", f"user-{user_id}"],
+            "metadata": {
+                "thread_id": thread_id,
+                "user_id": user_id,
+                "git_commit_hash": git_commit_hash
+            }
         }
         state = PortfolioState(tickers=tickers)
         
