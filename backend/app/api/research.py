@@ -34,7 +34,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
 from backend.app.db.session import get_db, DATABASE_URL, async_session
-from backend.app.db.models import Thread, Brief, Annotation, Evaluation, User
+from backend.app.db.models import Thread, Brief, Annotation, Evaluation, User, CostMetric
 from backend.app.graphs.supervisor import portfolio_builder
 from backend.app.graphs.state import SectionAnnotation, PortfolioState, InvestmentBrief
 from backend.app.services.vector_store import save_memory
@@ -500,3 +500,49 @@ async def stream_research(thread_id: str, request: Request, token: Optional[str]
             yield f"data: {json.dumps({'event': 'error', 'message': str(e)})}\n\n"
             
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+# 6. Analytics cost and latency endpoint
+@router.get("/analytics")
+async def get_analytics(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Retrieve cost metrics for all threads belonging to the current user
+    # threads are linked to user_id, cost_metrics are linked to thread_id
+    result = await db.execute(
+        select(CostMetric, Thread.name)
+        .join(Thread, Thread.thread_id == CostMetric.thread_id)
+        .where(Thread.user_id == current_user.id)
+        .order_by(CostMetric.created_at.desc())
+    )
+    rows = result.all()
+    
+    metrics = [row[0] for row in rows]
+    thread_names = {row[0].thread_id: row[1] for row in rows}
+    
+    total_cost = sum(m.estimated_cost_usd for m in metrics)
+    total_prompt = sum(m.prompt_tokens for m in metrics)
+    total_completion = sum(m.completion_tokens for m in metrics)
+    avg_latency = (sum(m.latency_seconds for m in metrics) / len(metrics)) if metrics else 0.0
+    
+    return {
+        "summary": {
+            "total_runs": len(metrics),
+            "total_cost_usd": total_cost,
+            "total_prompt_tokens": total_prompt,
+            "total_completion_tokens": total_completion,
+            "average_latency_seconds": avg_latency
+        },
+        "details": [
+            {
+                "id": str(m.id),
+                "thread_id": str(m.thread_id),
+                "thread_name": thread_names.get(m.thread_id, "Unknown Thread"),
+                "prompt_tokens": m.prompt_tokens,
+                "completion_tokens": m.completion_tokens,
+                "estimated_cost_usd": m.estimated_cost_usd,
+                "latency_seconds": m.latency_seconds,
+                "created_at": m.created_at.isoformat()
+            } for m in metrics
+        ]
+    }
