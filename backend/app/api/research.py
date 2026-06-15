@@ -2,6 +2,7 @@ import os
 import uuid
 import json
 import asyncio
+import time
 from typing import List, Dict, Any, Optional
 # pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field
@@ -28,6 +29,7 @@ from backend.app.graphs.supervisor import portfolio_builder
 from backend.app.graphs.state import SectionAnnotation, PortfolioState, InvestmentBrief
 from backend.app.services.vector_store import save_memory
 from backend.app.services.evaluator import evaluate_brief
+from backend.app.services.cost_tracker import TokenTrackerCallback, save_cost_metric
 
 router = APIRouter()
 
@@ -238,7 +240,11 @@ async def resume_research(req: ResearchResumeRequest, db: AsyncSession = Depends
     await checkpointer.setup()
     compiled_app = portfolio_builder.compile(checkpointer=checkpointer)
     
-    config = {"configurable": {"thread_id": req.thread_id}}
+    tracker = TokenTrackerCallback()
+    config = {
+        "configurable": {"thread_id": req.thread_id},
+        "callbacks": [tracker]
+    }
     state_info = await compiled_app.aget_state(config)
     
     resume_map = {}
@@ -285,8 +291,10 @@ async def resume_research(req: ResearchResumeRequest, db: AsyncSession = Depends
         db_thread.status = "initiated"
         await db.commit()
         
+        start_time = time.time()
         # Invoke LangGraph resume
         await compiled_app.ainvoke(Command(resume=resume_map), config=config)
+        latency = time.time() - start_time
         
         # Inspect state after run
         state_info = await compiled_app.aget_state(config)
@@ -317,6 +325,7 @@ async def resume_research(req: ResearchResumeRequest, db: AsyncSession = Depends
         await db.commit()
         if not state_info.next:
             await run_evaluation_for_briefs(db, thread_uuid, state_info.values)
+            await save_cost_metric(db, thread_uuid, tracker, latency)
         
         return {
             "status": db_thread.status,
@@ -349,10 +358,15 @@ async def stream_research(thread_id: str):
         await checkpointer.setup()
         compiled_app = portfolio_builder.compile(checkpointer=checkpointer)
         
-        config = {"configurable": {"thread_id": thread_id}}
+        tracker = TokenTrackerCallback()
+        config = {
+            "configurable": {"thread_id": thread_id},
+            "callbacks": [tracker]
+        }
         state = PortfolioState(tickers=tickers)
         
         try:
+            start_time = time.time()
             async for event in compiled_app.astream_events(state, config=config, version="v2"):
                 # Handle node starts
                 if event["event"] == "on_chain_start" and "langgraph_node" in event.get("metadata", {}):
@@ -369,6 +383,7 @@ async def stream_research(thread_id: str):
                     if chunk and hasattr(chunk, "content") and chunk.content:
                         yield f"data: {json.dumps({'event': 'token', 'text': chunk.content})}\n\n"
                         
+            latency = time.time() - start_time
             # Final state verification
             state_info = await compiled_app.aget_state(config)
             async with async_session() as session:
@@ -411,6 +426,7 @@ async def stream_research(thread_id: str):
                 await session.commit()
                 if not state_info.next:
                     await run_evaluation_for_briefs(session, thread_uuid, state_info.values)
+                    await save_cost_metric(session, thread_uuid, tracker, latency)
                 
         except Exception as e:
             async with async_session() as session:

@@ -19,6 +19,13 @@ async def init_db():
         # Base.metadata.create_all is perfect.
         await conn.run_sync(Base.metadata.create_all)
         
+        # 2.5 Create HNSW vector index
+        print("Creating HNSW index on long_term_memory.embedding...")
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS long_term_memory_embedding_hnsw_idx "
+            "ON long_term_memory USING hnsw (embedding vector_cosine_ops);"
+        ))
+        
         # 3. Seed default analyst user
         user_check = await conn.execute(text("SELECT id FROM users WHERE email = 'analyst@example.com';"))
         user = user_check.fetchone()
