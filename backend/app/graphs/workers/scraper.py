@@ -25,26 +25,38 @@ class TokenBucketLimiter:
         self.tokens = capacity
         self.last_check = time.time()
 
-    def wait_for_token(self): 
+    async def wait_for_token(self): 
         now = time.time()
         elapsed = now - self.last_check
         self.last_check = now
         self.tokens = min(self.capacity, self.tokens + elapsed * self.rate)
         if self.tokens < 1: 
             sleep_time = (1 - self.tokens) / self.rate
-            time.sleep(sleep_time)
+            await sleep(sleep_time)
             self.tokens = 0
         else: 
             self.tokens -= 1
 
 sec_limiter = TokenBucketLimiter(rate=10, capacity=10)
+tavily_limiter = TokenBucketLimiter(rate=5, capacity=5)
+
+import functools
+
+def rate_limited(limiter: TokenBucketLimiter):
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            await limiter.wait_for_token()
+            return await func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 # SEC EDGAR SCRAPER TOOL 
+@rate_limited(sec_limiter)
 async def get_cik_for_ticker(ticker: str) -> Optional[str]: 
     """Fetches the SEC CIK code for a given ticker."""
 
-    sec_limiter.wait_for_token()
     url = "https://www.sec.gov/files/company_tickers.json"
 
     async with httpx.AsyncClient() as client: 
@@ -61,6 +73,7 @@ async def get_cik_for_ticker(ticker: str) -> Optional[str]:
     
     return None
 
+@rate_limited(sec_limiter)
 async def fetch_sec_filings(ticker: str, form_type: str = "10-K") -> List[SecFiling]: 
     """Fetches recent SEC filings of form_type (10-K or 10-Q) for a ticker."""
 
@@ -69,7 +82,6 @@ async def fetch_sec_filings(ticker: str, form_type: str = "10-K") -> List[SecFil
         print(f"No CIK found for ticker: {ticker}")
         return []
     
-    sec_limiter.wait_for_token()
     url = f"https://data.sec.gov/submissions/CIK{cik}.json"
     filings = []
 
@@ -116,6 +128,7 @@ async def fetch_sec_filings(ticker: str, form_type: str = "10-K") -> List[SecFil
 
 # news & transcript tool (using tavily)
 
+@rate_limited(tavily_limiter)
 async def scrape_news(query: str, n_results: int = 5) -> List[NewsEntry]: 
     """Uses Tavily Search to locate and summarize recent financial news."""
 
@@ -151,6 +164,7 @@ async def scrape_news(query: str, n_results: int = 5) -> List[NewsEntry]:
         print(f"Error querying Tavily search for news: {e}")
         return []
 
+@rate_limited(tavily_limiter)
 async def fetch_earnings_transcript(ticker: str) -> Optional[EarningsTranscript]: 
     """Uses Tavily search to fetch the latest public earnings call transcript text."""
 
