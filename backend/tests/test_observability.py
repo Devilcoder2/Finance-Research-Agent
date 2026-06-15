@@ -77,6 +77,13 @@ async def test_api_tracing_config_stream():
     # Patch the compiler to return our mock application
     with patch("backend.app.api.research.portfolio_builder.compile", return_value=mock_compiled_app) as mock_compile:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            # Authenticate
+            test_email = f"test_{uuid.uuid4()}@example.com"
+            await ac.post("/api/auth/signup", json={"email": test_email, "password": "password"})
+            login_res = await ac.post("/api/auth/login", json={"email": test_email, "password": "password"})
+            assert login_res.status_code == 200
+            token = login_res.json()["access_token"]
+            ac.headers["Authorization"] = f"Bearer {token}"
             
             # Start research run session
             start_payload = {"tickers": ["AAPL"]}
@@ -160,6 +167,13 @@ async def test_api_tracing_config_resume():
     
     with patch("backend.app.api.research.portfolio_builder.compile", return_value=mock_compiled_app) as mock_compile:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            # Authenticate
+            test_email = f"test_{uuid.uuid4()}@example.com"
+            await ac.post("/api/auth/signup", json={"email": test_email, "password": "password"})
+            login_res = await ac.post("/api/auth/login", json={"email": test_email, "password": "password"})
+            assert login_res.status_code == 200
+            token = login_res.json()["access_token"]
+            ac.headers["Authorization"] = f"Bearer {token}"
             
             # Start research run session
             start_payload = {"tickers": ["AAPL"]}

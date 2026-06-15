@@ -17,7 +17,7 @@ from typing import List, Dict, Any, Optional
 # pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field
 # pyrefly: ignore [missing-import]
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 # pyrefly: ignore [missing-import]
 from fastapi.responses import StreamingResponse
 # pyrefly: ignore [missing-import]
@@ -34,12 +34,13 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
 from backend.app.db.session import get_db, DATABASE_URL, async_session
-from backend.app.db.models import Thread, Brief, Annotation, Evaluation
+from backend.app.db.models import Thread, Brief, Annotation, Evaluation, User
 from backend.app.graphs.supervisor import portfolio_builder
 from backend.app.graphs.state import SectionAnnotation, PortfolioState, InvestmentBrief
 from backend.app.services.vector_store import save_memory
 from backend.app.services.evaluator import evaluate_brief
 from backend.app.services.cost_tracker import TokenTrackerCallback, save_cost_metric
+from backend.app.api.auth import get_current_user, get_user_from_token_string
 
 router = APIRouter()
 
@@ -146,15 +147,17 @@ class ResearchResumeRequest(BaseModel):
 
 # 1. Start research run session
 @router.post("/start", status_code=status.HTTP_201_CREATED)
-async def start_research(req: ResearchStartRequest, db: AsyncSession = Depends(get_db)):
-    # Default analyst user ID seeded in DB init
-    default_user_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+async def start_research(
+    req: ResearchStartRequest, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     thread_id = uuid.uuid4()
     
     # Create thread entry
     db_thread = Thread(
         thread_id=thread_id,
-        user_id=default_user_id,
+        user_id=current_user.id,
         name=f"Research: {', '.join(req.tickers)}",
         tickers=req.tickers,
         status="initiated"
@@ -169,8 +172,15 @@ async def start_research(req: ResearchStartRequest, db: AsyncSession = Depends(g
 
 # 2. Get past run sessions (threads)
 @router.get("/threads")
-async def list_threads(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Thread).order_by(Thread.created_at.desc()))
+async def list_threads(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Thread)
+        .where(Thread.user_id == current_user.id)
+        .order_by(Thread.created_at.desc())
+    )
     threads = result.scalars().all()
     
     # Format response payload
@@ -186,16 +196,23 @@ async def list_threads(db: AsyncSession = Depends(get_db)):
 
 # 3. Get completed briefs and stats for a thread
 @router.get("/briefs/{thread_id}")
-async def get_briefs(thread_id: str, db: AsyncSession = Depends(get_db)):
+async def get_briefs(
+    thread_id: str, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         thread_uuid = uuid.UUID(thread_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid thread_id format")
         
-    result = await db.execute(select(Thread).where(Thread.thread_id == thread_uuid))
+    result = await db.execute(
+        select(Thread)
+        .where(Thread.thread_id == thread_uuid, Thread.user_id == current_user.id)
+    )
     db_thread = result.scalar_one_or_none()
     if not db_thread:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="Thread not found or access denied")
         
     briefs_result = await db.execute(select(Brief).where(Brief.thread_id == thread_uuid))
     briefs = briefs_result.scalars().all()
@@ -234,16 +251,23 @@ async def get_briefs(thread_id: str, db: AsyncSession = Depends(get_db)):
 
 # 4. Resume research run session
 @router.post("/resume")
-async def resume_research(req: ResearchResumeRequest, db: AsyncSession = Depends(get_db)):
+async def resume_research(
+    req: ResearchResumeRequest, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         thread_uuid = uuid.UUID(req.thread_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid thread_id format")
         
-    result = await db.execute(select(Thread).where(Thread.thread_id == thread_uuid))
+    result = await db.execute(
+        select(Thread)
+        .where(Thread.thread_id == thread_uuid, Thread.user_id == current_user.id)
+    )
     db_thread = result.scalar_one_or_none()
     if not db_thread:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="Thread not found or access denied")
         
     pool = await get_pool()
     checkpointer = AsyncPostgresSaver(pool)
@@ -356,18 +380,31 @@ async def resume_research(req: ResearchResumeRequest, db: AsyncSession = Depends
 
 # 5. SSE progress and token streaming endpoint
 @router.get("/stream/{thread_id}")
-async def stream_research(thread_id: str):
+async def stream_research(thread_id: str, request: Request, token: Optional[str] = None):
     try:
         thread_uuid = uuid.UUID(thread_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid thread_id format")
         
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+            
     async def event_generator():
         async with async_session() as session:
-            result = await session.execute(select(Thread).where(Thread.thread_id == thread_uuid))
+            user = await get_user_from_token_string(token, session)
+            if not user:
+                yield f"data: {json.dumps({'event': 'error', 'message': 'Unauthorized'})}\n\n"
+                return
+                
+            result = await session.execute(
+                select(Thread)
+                .where(Thread.thread_id == thread_uuid, Thread.user_id == user.id)
+            )
             db_thread = result.scalar_one_or_none()
             if not db_thread:
-                yield f"data: {json.dumps({'event': 'error', 'message': 'Thread not found'})}\n\n"
+                yield f"data: {json.dumps({'event': 'error', 'message': 'Thread not found or access denied'})}\n\n"
                 return
             tickers = db_thread.tickers
             user_id = str(db_thread.user_id)

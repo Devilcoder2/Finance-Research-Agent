@@ -113,6 +113,14 @@ async def test_cost_metrics_logged_via_api():
     """Verify that a standard research API run logs cost metrics to DB on completion."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         
+        # Authenticate
+        test_email = f"test_{uuid.uuid4()}@example.com"
+        await ac.post("/api/auth/signup", json={"email": test_email, "password": "password"})
+        login_res = await ac.post("/api/auth/login", json={"email": test_email, "password": "password"})
+        assert login_res.status_code == 200
+        token = login_res.json()["access_token"]
+        ac.headers["Authorization"] = f"Bearer {token}"
+        
         # 1. Start run
         start_payload = {"tickers": ["AAPL"]}
         response = await ac.post("/api/research/start", json=start_payload)

@@ -3,6 +3,7 @@ from fastapi import FastAPI
 # pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.api.research import router as research_router
+from backend.app.api.auth import router as auth_router
 
 app = FastAPI(
     title="Financial Research Analyst Platform API",
@@ -19,7 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register research API router
+# Register API routers
+app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(research_router, prefix="/api/research", tags=["Research"])
 
 @app.get("/")

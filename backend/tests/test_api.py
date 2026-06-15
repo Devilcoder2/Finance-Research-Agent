@@ -12,6 +12,15 @@ async def test_research_api_lifecycle():
     # Setup AsyncClient with ASGITransport to hit our FastAPI app in-process
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         
+        # Authenticate
+        test_email = f"test_{uuid.uuid4()}@example.com"
+        signup_res = await ac.post("/api/auth/signup", json={"email": test_email, "password": "password"})
+        assert signup_res.status_code == 201
+        login_res = await ac.post("/api/auth/login", json={"email": test_email, "password": "password"})
+        assert login_res.status_code == 200
+        token = login_res.json()["access_token"]
+        ac.headers["Authorization"] = f"Bearer {token}"
+        
         # =====================================================================
         # 1. Start a new research thread
         # =====================================================================
