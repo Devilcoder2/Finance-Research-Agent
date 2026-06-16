@@ -52,6 +52,58 @@
   --border-radius-lg: 24px;
 }
 
+.light-theme {
+  /* Core Light Theme Color Palette - Premium HSL Values */
+  --bg-primary-rgb: 241, 245, 249; /* Slate 100 */
+  --bg-secondary-rgb: 255, 255, 255; /* Pure White */
+
+  --bg-glass: rgba(255, 255, 255, 0.7);
+  --bg-glass-card: rgba(255, 255, 255, 0.85);
+  --border-glass: rgba(15, 23, 42, 0.08);
+  --border-glass-active: rgba(15, 23, 42, 0.16);
+  --shadow-glass: 0 8px 32px 0 rgba(15, 23, 42, 0.06);
+
+  --text-bright: #0f172a; /* Slate 900 */
+  --text-normal: #334155; /* Slate 700 */
+  --text-muted: #64748b; /* Slate 500 */
+  --text-dark: #94a3b8; /* Slate 400 */
+}
+
+/* Light mode backgrounds & custom components */
+.light-theme body {
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.04) 0%, transparent 40%),
+    linear-gradient(rgba(15, 23, 42, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.015) 1px, transparent 1px);
+}
+
+.light-theme .glass-input {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text-bright);
+}
+
+.light-theme select.glass-input {
+  background-color: rgb(255, 255, 255) !important;
+}
+
+.light-theme select.glass-input option {
+  background-color: rgb(255, 255, 255) !important;
+  color: #0f172a !important;
+}
+
+.light-theme ::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.5);
+}
+
+.light-theme ::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.1);
+}
+
+.light-theme ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.2);
+}
+
 /* Base resets */
 * {
   margin: 0;

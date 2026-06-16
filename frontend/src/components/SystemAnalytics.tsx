@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { api, AnalyticsResponse, ThreadItem, BriefItem } from '../services/api';
-import { BarChart3, TrendingUp, DollarSign, Activity, Award, ShieldCheck, RefreshCw, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { api } from '../services/api';
+import type { AnalyticsResponse } from '../services/api';
+import { BarChart3, TrendingUp, DollarSign, Activity, Award, ShieldCheck, RefreshCw } from 'lucide-react';
 
 interface SystemAnalyticsProps {
   onNavigateBack: () => void;
@@ -8,7 +9,6 @@ interface SystemAnalyticsProps {
 
 export function SystemAnalytics({ onNavigateBack }: SystemAnalyticsProps) {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
-  const [threads, setThreads] = useState<ThreadItem[]>([]);
   const [briefsEvaluations, setBriefsEvaluations] = useState<{
     ticker: string;
     threadName: string;
@@ -31,7 +31,6 @@ export function SystemAnalytics({ onNavigateBack }: SystemAnalyticsProps) {
 
       const threadsData = await api.getThreads();
       const completed = threadsData.filter(t => t.status === 'completed');
-      setThreads(completed);
 
       // Fetch evaluations for completed threads
       const evalsList: typeof briefsEvaluations = [];

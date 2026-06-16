@@ -47,7 +47,6 @@ export function Dashboard({ onSelectThread, onNavigateToCockpit }: DashboardProp
 
   // Compute aggregated dashboard stats
   const totalThreads = threads.length;
-  const activeThreads = threads.filter(t => t.status === 'initiated').length;
   const pendingReviews = threads.filter(t => t.status === 'paused' || t.status === 'revision').length;
   
   // Real Cost from backend or fallback to estimation

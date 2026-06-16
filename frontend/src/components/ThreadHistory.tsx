@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { api, ThreadItem } from '../services/api';
-import { Search, Filter, ArrowUpDown, Play, RefreshCw, Eye, ClipboardList } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { api } from '../services/api';
+import type { ThreadItem } from '../services/api';
+import { Search, Filter, ArrowUpDown, Play, RefreshCw, Eye, ClipboardList, FileText } from 'lucide-react';
 
 interface ThreadHistoryProps {
   onSelectThread: (threadId: string, tickers: string[]) => void;

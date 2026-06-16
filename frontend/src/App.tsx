@@ -5,6 +5,8 @@ import { Dashboard } from './components/Dashboard';
 import { ResearchCockpit } from './components/ResearchCockpit';
 import { BriefReview } from './components/BriefReview';
 import { Comparison } from './components/Comparison';
+import { ThreadHistory } from './components/ThreadHistory';
+import { SystemAnalytics } from './components/SystemAnalytics';
 import { 
   FolderGit2, 
   Play, 
@@ -12,15 +14,30 @@ import {
   LogOut, 
   User, 
   Cpu, 
-  FileText
+  FileText,
+  History,
+  Activity,
+  ChevronLeft,
+  ChevronRight,
+  Sun,
+  Moon
 } from 'lucide-react';
 
-type TabType = 'dashboard' | 'new_research' | 'comparison' | 'review';
+type TabType = 'dashboard' | 'new_research' | 'comparison' | 'review' | 'history' | 'analytics';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<typeof DEFAULT_USER | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [loading, setLoading] = useState(true);
+
+  // Theme Controller state
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const cached = localStorage.getItem(STORAGE_KEYS.THEME_MODE);
+    return (cached as 'dark' | 'light') || 'dark';
+  });
+
+  // Collapsible Sidebar state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Cockpit/Review state configurations
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
@@ -29,6 +46,16 @@ export default function App() {
   // Staged Thread Id for Brief Review view
   const [reviewThreadId, setReviewThreadId] = useState<string | null>(null);
   const [reviewTickers, setReviewTickers] = useState<string[]>([]);
+
+  // Sync theme selection to document.body
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.THEME_MODE, theme);
+    if (theme === 'light') {
+      document.body.classList.add('light-theme');
+    } else {
+      document.body.classList.remove('light-theme');
+    }
+  }, [theme]);
 
   // Check auth cache on mount
   useEffect(() => {
@@ -103,38 +130,74 @@ export default function App() {
       
       {/* SIDEBAR NAVIGATION SHELL */}
       <aside className="glass-panel" style={{
-        width: 'var(--sidebar-width)',
+        width: sidebarCollapsed ? '78px' : 'var(--sidebar-width)',
+        minWidth: sidebarCollapsed ? '78px' : 'var(--sidebar-width)',
         borderRadius: '0',
         borderTop: '0',
         borderLeft: '0',
         borderBottom: '0',
         display: 'flex',
         flexDirection: 'column',
-        padding: '24px 16px',
+        padding: sidebarCollapsed ? '24px 8px' : '24px 16px',
         zIndex: 50,
+        transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
         
-        {/* Sidebar Header Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 8px 32px 8px', borderBottom: '1px solid var(--border-glass)' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, var(--primary-glow) 0%, var(--secondary-glow) 100%)',
-            borderRadius: '8px',
-            padding: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 15px 0 rgba(139, 92, 246, 0.35)'
-          }}>
-            <Cpu size={20} style={{ color: 'var(--text-bright)' }} />
+        {/* Sidebar Header Logo & Collapse Button */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+          padding: '0 8px 32px 8px', 
+          borderBottom: '1px solid var(--border-glass)',
+          flexWrap: 'nowrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, var(--primary-glow) 0%, var(--secondary-glow) 100%)',
+              borderRadius: '8px',
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 15px 0 rgba(139, 92, 246, 0.35)',
+              flexShrink: 0
+            }}>
+              <Cpu size={20} style={{ color: 'var(--text-bright)' }} />
+            </div>
+            {!sidebarCollapsed && (
+              <div>
+                <h1 className="font-display" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-bright)', letterSpacing: '-0.02em', margin: 0 }}>
+                  ANTIGRAVITY
+                </h1>
+                <span style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, display: 'block', marginTop: '2px' }}>
+                  Research Platform
+                </span>
+              </div>
+            )}
           </div>
-          <div>
-            <h1 className="font-display" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-bright)', letterSpacing: '-0.02em' }}>
-              ANTIGRAVITY
-            </h1>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
-              Research Cockpit
-            </span>
-          </div>
+          
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            style={{
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid var(--border-glass)',
+              borderRadius: '6px',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              marginLeft: sidebarCollapsed ? '0' : '8px',
+              transition: 'all 0.2s ease',
+              flexShrink: 0
+            }}
+          >
+            {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
         </div>
 
         {/* Sidebar Nav Tabs */}
@@ -144,11 +207,13 @@ export default function App() {
               setActiveTab('dashboard');
               setReviewThreadId(null);
             }}
+            title={sidebarCollapsed ? "Investment Board" : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '12px',
+              padding: sidebarCollapsed ? '12px 0' : '12px 16px',
               fontSize: '14px',
               fontWeight: 500,
               borderRadius: 'var(--border-radius-sm)',
@@ -163,8 +228,8 @@ export default function App() {
               borderLeft: activeTab === 'dashboard' ? '3px solid var(--primary-glow)' : '3px solid transparent'
             }}
           >
-            <FolderGit2 size={18} />
-            <span>Investment Board</span>
+            <FolderGit2 size={18} style={{ flexShrink: 0 }} />
+            {!sidebarCollapsed && <span>Investment Board</span>}
           </button>
 
           <button
@@ -172,11 +237,13 @@ export default function App() {
               setActiveTab('new_research');
               setReviewThreadId(null);
             }}
+            title={sidebarCollapsed ? "Launch Analysis" : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '12px',
+              padding: sidebarCollapsed ? '12px 0' : '12px 16px',
               fontSize: '14px',
               fontWeight: 500,
               borderRadius: 'var(--border-radius-sm)',
@@ -191,8 +258,38 @@ export default function App() {
               borderLeft: activeTab === 'new_research' ? '3px solid var(--primary-glow)' : '3px solid transparent'
             }}
           >
-            <Play size={18} fill={activeTab === 'new_research' ? "currentColor" : "none"} />
-            <span>Launch Analysis</span>
+            <Play size={18} fill={activeTab === 'new_research' ? "currentColor" : "none"} style={{ flexShrink: 0 }} />
+            {!sidebarCollapsed && <span>Launch Analysis</span>}
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('history');
+              setReviewThreadId(null);
+            }}
+            title={sidebarCollapsed ? "Thread Explorer" : undefined}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '12px',
+              padding: sidebarCollapsed ? '12px 0' : '12px 16px',
+              fontSize: '14px',
+              fontWeight: 500,
+              borderRadius: 'var(--border-radius-sm)',
+              border: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              transition: 'all 0.2s ease',
+              width: '100%',
+              textAlign: 'left',
+              backgroundColor: activeTab === 'history' ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+              color: activeTab === 'history' ? 'var(--text-bright)' : 'var(--text-muted)',
+              borderLeft: activeTab === 'history' ? '3px solid var(--primary-glow)' : '3px solid transparent'
+            }}
+          >
+            <History size={18} style={{ flexShrink: 0 }} />
+            {!sidebarCollapsed && <span>Thread Explorer</span>}
           </button>
 
           <button
@@ -200,11 +297,13 @@ export default function App() {
               setActiveTab('comparison');
               setReviewThreadId(null);
             }}
+            title={sidebarCollapsed ? "Metrics Comparison" : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '12px',
+              padding: sidebarCollapsed ? '12px 0' : '12px 16px',
               fontSize: '14px',
               fontWeight: 500,
               borderRadius: 'var(--border-radius-sm)',
@@ -219,29 +318,68 @@ export default function App() {
               borderLeft: activeTab === 'comparison' ? '3px solid var(--primary-glow)' : '3px solid transparent'
             }}
           >
-            <BarChart3 size={18} />
-            <span>Metrics Analytics</span>
+            <BarChart3 size={18} style={{ flexShrink: 0 }} />
+            {!sidebarCollapsed && <span>Metrics Comparison</span>}
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('analytics');
+              setReviewThreadId(null);
+            }}
+            title={sidebarCollapsed ? "System Observability" : undefined}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '12px',
+              padding: sidebarCollapsed ? '12px 0' : '12px 16px',
+              fontSize: '14px',
+              fontWeight: 500,
+              borderRadius: 'var(--border-radius-sm)',
+              border: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              transition: 'all 0.2s ease',
+              width: '100%',
+              textAlign: 'left',
+              backgroundColor: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+              color: activeTab === 'analytics' ? 'var(--text-bright)' : 'var(--text-muted)',
+              borderLeft: activeTab === 'analytics' ? '3px solid var(--primary-glow)' : '3px solid transparent'
+            }}
+          >
+            <Activity size={18} style={{ flexShrink: 0 }} />
+            {!sidebarCollapsed && <span>System Observability</span>}
           </button>
 
           {/* Staged review view indicator if active */}
           {reviewThreadId && (
-            <div
+            <button
+              onClick={() => setActiveTab('review')}
+              title={sidebarCollapsed ? "Report Draft Review" : undefined}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                padding: '12px 16px',
+                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                gap: sidebarCollapsed ? '0' : '12px',
+                padding: sidebarCollapsed ? '12px 0' : '12px 16px',
                 fontSize: '14px',
                 fontWeight: 500,
                 borderRadius: 'var(--border-radius-sm)',
+                border: 'none',
+                cursor: 'pointer',
+                outline: 'none',
+                transition: 'all 0.2s ease',
+                width: '100%',
+                textAlign: 'left',
                 color: 'var(--accent-warning)',
-                backgroundColor: 'rgba(245, 158, 11, 0.04)',
-                borderLeft: '3px solid var(--accent-warning)'
+                backgroundColor: activeTab === 'review' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.04)',
+                borderLeft: activeTab === 'review' ? '3px solid var(--accent-warning)' : '3px solid transparent'
               }}
             >
-              <FileText size={18} />
-              <span>Report Draft Review</span>
-            </div>
+              <FileText size={18} style={{ flexShrink: 0 }} />
+              {!sidebarCollapsed && <span>Draft Review</span>}
+            </button>
           )}
         </nav>
 
@@ -252,9 +390,10 @@ export default function App() {
           paddingTop: '20px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px'
+          gap: '12px',
+          alignItems: sidebarCollapsed ? 'center' : 'stretch'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', gap: '12px' }}>
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.05)',
               border: '1px solid var(--border-glass)',
@@ -263,42 +402,74 @@ export default function App() {
               color: 'var(--text-bright)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}>
               <User size={16} />
             </div>
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-bright)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                {currentUser.name}
+            {!sidebarCollapsed && (
+              <div style={{ overflow: 'hidden' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-bright)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  {currentUser.name}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  {currentUser.email}
+                </div>
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                {currentUser.email}
-              </div>
-            </div>
+            )}
           </div>
 
-          <button
-            onClick={handleLogout}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '10px',
-              fontSize: '13px',
-              fontWeight: 500,
-              color: 'var(--accent-danger)',
-              backgroundColor: 'rgba(239, 68, 68, 0.03)',
-              border: '1px solid rgba(239, 68, 68, 0.08)',
-              borderRadius: 'var(--border-radius-sm)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              width: '100%'
-            }}
-          >
-            <LogOut size={14} />
-            <span>Sign Out</span>
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+            {/* Theme Toggle Button */}
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title={sidebarCollapsed ? `Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode` : undefined}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: sidebarCollapsed ? '0' : '8px',
+                padding: '10px',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--text-bright)',
+                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--border-glass)',
+                borderRadius: 'var(--border-radius-sm)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                width: '100%'
+              }}
+            >
+              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+              {!sidebarCollapsed && <span>{theme === 'dark' ? 'Light Theme' : 'Dark Theme'}</span>}
+            </button>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              title={sidebarCollapsed ? "Sign Out" : undefined}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: sidebarCollapsed ? '0' : '8px',
+                padding: '10px',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--accent-danger)',
+                backgroundColor: 'rgba(239, 68, 68, 0.03)',
+                border: '1px solid rgba(239, 68, 68, 0.08)',
+                borderRadius: 'var(--border-radius-sm)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                width: '100%'
+              }}
+            >
+              <LogOut size={14} />
+              {!sidebarCollapsed && <span>Sign Out</span>}
+            </button>
+          </div>
         </div>
 
       </aside>
@@ -391,8 +562,24 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'history' && (
+            <ThreadHistory 
+              onSelectThread={handleSelectHistoryThread}
+              onNavigateToCockpit={(threadId, tickers) => {
+                handleStartActiveResearch(threadId, tickers);
+                setActiveTab('new_research');
+              }}
+            />
+          )}
+
           {activeTab === 'comparison' && (
             <Comparison 
+              onNavigateBack={() => setActiveTab('dashboard')}
+            />
+          )}
+
+          {activeTab === 'analytics' && (
+            <SystemAnalytics 
               onNavigateBack={() => setActiveTab('dashboard')}
             />
           )}
