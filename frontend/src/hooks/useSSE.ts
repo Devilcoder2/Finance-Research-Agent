@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { API_ENDPOINTS } from '../constants';
+import { API_ENDPOINTS, STORAGE_KEYS } from '../constants';
 
 export interface SSELog {
   timestamp: string;
@@ -60,7 +60,9 @@ export function useSSE(threadId: string | null) {
 
     setState((prev) => ({ ...prev, isStreaming: true }));
 
-    const url = API_ENDPOINTS.STREAM_RESEARCH(threadId);
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+    const url = `${API_ENDPOINTS.STREAM_RESEARCH(threadId)}${tokenQuery}`;
     const eventSource = new EventSource(url);
     eventSourceRef.current = eventSource;
 

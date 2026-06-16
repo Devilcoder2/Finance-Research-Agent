@@ -5,11 +5,14 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:80
 
 // API Endpoints
 export const API_ENDPOINTS = {
+  LOGIN: `${API_BASE_URL}/api/auth/login`,
+  SIGNUP: `${API_BASE_URL}/api/auth/signup`,
   START_RESEARCH: `${API_BASE_URL}/api/research/start`,
   RESUME_RESEARCH: `${API_BASE_URL}/api/research/resume`,
   GET_THREADS: `${API_BASE_URL}/api/research/threads`,
   GET_BRIEFS: (threadId: string) => `${API_BASE_URL}/api/research/briefs/${threadId}`,
   STREAM_RESEARCH: (threadId: string) => `${API_BASE_URL}/api/research/stream/${threadId}`,
+  GET_ANALYTICS: `${API_BASE_URL}/api/research/analytics`,
 };
 
 // Default Authentication configuration

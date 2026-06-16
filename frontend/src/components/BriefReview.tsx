@@ -483,6 +483,24 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
                 </div>
               )}
 
+              {activeBrief.revision_count >= 2 && (
+                <div style={{
+                  fontSize: '12px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  color: 'var(--accent-danger)',
+                  padding: '10px 14px',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  borderRadius: '4px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <ShieldAlert size={16} style={{ flexShrink: 0 }} />
+                  <span>Warning: Reached {activeBrief.revision_count}/3 revision cycles. Next reject will abort the thread run.</span>
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <button
                   className="btn-premium animate-glow-cyan"

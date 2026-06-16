@@ -24,6 +24,7 @@ export function ResearchCockpit({
   const [tickersList, setTickersList] = useState<string[]>(activeTickers);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [threadName, setThreadName] = useState('');
 
   // SSE Stream hook
   const {
@@ -86,7 +87,7 @@ export function ResearchCockpit({
     setFormError(null);
 
     try {
-      const result = await api.startResearch(tickersList);
+      const result = await api.startResearch(tickersList, threadName || undefined);
       onStartSession(result.thread_id, tickersList);
     } catch (err: any) {
       console.error(err);
@@ -129,6 +130,22 @@ export function ResearchCockpit({
         /* ================= FORM STATE ================= */
         <div className="glass-panel" style={{ padding: '36px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
           
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <label htmlFor="threadName" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-bright)' }}>
+              Research Thread Name
+            </label>
+            <input
+              id="threadName"
+              type="text"
+              placeholder="e.g., Tech Giants Q3 Multi-Tenant Sweep"
+              className="glass-input"
+              value={threadName}
+              onChange={(e) => setThreadName(e.target.value)}
+              disabled={loading}
+              style={{ width: '100%' }}
+            />
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-bright)' }}>
               Stock Ticker Search & Add
