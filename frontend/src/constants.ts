@@ -40,43 +40,43 @@ export interface NodeInfo {
 
 export const AGENT_NODES: Record<string, NodeInfo> = {
   load_memories: {
-    label: 'Semantic Memory Loader',
-    description: 'Retrieving historical research briefs and analyst preferences via pgvector.',
+    label: 'Loading Past Research',
+    description: 'Retrieving historical report findings and analyst preferences to guide current research.',
     color: '#a855f7', // Purple
   },
   run_scraper: {
-    label: 'Web Scraper Worker',
-    description: 'Harvesting SEC filings (10-K/10-Q), earnings call transcripts, and news via Tavily/SEC EDGAR.',
+    label: 'Gathering Latest Info',
+    description: 'Searching recent news, press releases, and official SEC documents online.',
     color: '#3b82f6', // Blue
   },
   run_quant: {
-    label: 'Quantitative Metrics Engine',
-    description: 'Fetching price history, balance sheets, and key ratios via yfinance API.',
+    label: 'Checking Financial Data',
+    description: 'Fetching stock price history, balance sheets, and key performance ratios.',
     color: '#06b6d4', // Cyan
   },
   run_synthesis: {
-    label: 'Synthesis Analyst',
-    description: 'Drafting core investment brief sections (Executive Summary, Business Overview, Risks, Verdict) using LLM.',
+    label: 'Writing Report Drafts',
+    description: 'Drafting summaries, business overview, risk analyses, and final recommendations.',
     color: '#10b981', // Emerald
   },
   run_risk_check: {
-    label: 'Verification & Risk Auditor',
-    description: 'Validating numerical claims in the synthesized brief against scraped/quant raw data.',
+    label: 'Checking Fact Accuracy',
+    description: 'Verifying that generated numbers and statements match official source files.',
     color: '#f59e0b', // Amber
   },
   await_human_review: {
-    label: 'Analyst Cockpit Intercept',
-    description: 'Paused for manual verification, annotations, and approval decisions.',
+    label: 'Needs Your Review',
+    description: 'AI has finished the drafts and is waiting for your approval or correction feedback.',
     color: '#ef4444', // Red
   },
   loop_back_synthesis: {
-    label: 'Revision Loop Trigger',
-    description: 'Auto-rejection caught. Adjusting prompts and re-routing back to Synthesis.',
+    label: 'Applying Feedback',
+    description: 'Revising report sections based on your corrections and suggestions.',
     color: '#ec4899', // Pink
   },
   abort_max_revisions: {
-    label: 'Max Loops Abort',
-    description: 'Research process terminated because loop limit exceeded.',
+    label: 'Limit Reached',
+    description: 'Research cancelled because the maximum of 3 revision attempts was reached.',
     color: '#6b7280', // Gray
   },
 };

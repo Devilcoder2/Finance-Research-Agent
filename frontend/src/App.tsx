@@ -4,26 +4,20 @@ import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
 import { ResearchCockpit } from './components/ResearchCockpit';
 import { BriefReview } from './components/BriefReview';
-import { Comparison } from './components/Comparison';
-import { ThreadHistory } from './components/ThreadHistory';
-import { SystemAnalytics } from './components/SystemAnalytics';
 import { 
   FolderGit2, 
   Play, 
-  BarChart3, 
   LogOut, 
   User, 
   Cpu, 
   FileText,
-  History,
-  Activity,
   ChevronLeft,
   ChevronRight,
   Sun,
   Moon
 } from 'lucide-react';
 
-type TabType = 'dashboard' | 'new_research' | 'comparison' | 'review' | 'history' | 'analytics';
+type TabType = 'dashboard' | 'new_research' | 'review';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<typeof DEFAULT_USER | null>(null);
@@ -168,7 +162,7 @@ export default function App() {
             {!sidebarCollapsed && (
               <div>
                 <h1 className="font-display" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-bright)', letterSpacing: '-0.02em', margin: 0 }}>
-                  ANTIGRAVITY
+                  AI Research Assistant
                 </h1>
                 <span style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, display: 'block', marginTop: '2px' }}>
                   Research Platform
@@ -205,9 +199,8 @@ export default function App() {
           <button
             onClick={() => {
               setActiveTab('dashboard');
-              setReviewThreadId(null);
             }}
-            title={sidebarCollapsed ? "Investment Board" : undefined}
+            title={sidebarCollapsed ? "Research Hub" : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -229,15 +222,14 @@ export default function App() {
             }}
           >
             <FolderGit2 size={18} style={{ flexShrink: 0 }} />
-            {!sidebarCollapsed && <span>Investment Board</span>}
+            {!sidebarCollapsed && <span>Research Hub</span>}
           </button>
 
           <button
             onClick={() => {
               setActiveTab('new_research');
-              setReviewThreadId(null);
             }}
-            title={sidebarCollapsed ? "Launch Analysis" : undefined}
+            title={sidebarCollapsed ? "Start AI Analyst" : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -259,15 +251,14 @@ export default function App() {
             }}
           >
             <Play size={18} fill={activeTab === 'new_research' ? "currentColor" : "none"} style={{ flexShrink: 0 }} />
-            {!sidebarCollapsed && <span>Launch Analysis</span>}
+            {!sidebarCollapsed && <span>Start AI Analyst</span>}
           </button>
 
           <button
             onClick={() => {
-              setActiveTab('history');
-              setReviewThreadId(null);
+              setActiveTab('review');
             }}
-            title={sidebarCollapsed ? "Thread Explorer" : undefined}
+            title={sidebarCollapsed ? "Report Viewer" : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -283,104 +274,14 @@ export default function App() {
               transition: 'all 0.2s ease',
               width: '100%',
               textAlign: 'left',
-              backgroundColor: activeTab === 'history' ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
-              color: activeTab === 'history' ? 'var(--text-bright)' : 'var(--text-muted)',
-              borderLeft: activeTab === 'history' ? '3px solid var(--primary-glow)' : '3px solid transparent'
+              backgroundColor: activeTab === 'review' ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+              color: activeTab === 'review' ? 'var(--text-bright)' : 'var(--text-muted)',
+              borderLeft: activeTab === 'review' ? '3px solid var(--primary-glow)' : '3px solid transparent'
             }}
           >
-            <History size={18} style={{ flexShrink: 0 }} />
-            {!sidebarCollapsed && <span>Thread Explorer</span>}
+            <FileText size={18} style={{ flexShrink: 0 }} />
+            {!sidebarCollapsed && <span>Report Viewer</span>}
           </button>
-
-          <button
-            onClick={() => {
-              setActiveTab('comparison');
-              setReviewThreadId(null);
-            }}
-            title={sidebarCollapsed ? "Metrics Comparison" : undefined}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-              gap: sidebarCollapsed ? '0' : '12px',
-              padding: sidebarCollapsed ? '12px 0' : '12px 16px',
-              fontSize: '14px',
-              fontWeight: 500,
-              borderRadius: 'var(--border-radius-sm)',
-              border: 'none',
-              cursor: 'pointer',
-              outline: 'none',
-              transition: 'all 0.2s ease',
-              width: '100%',
-              textAlign: 'left',
-              backgroundColor: activeTab === 'comparison' ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
-              color: activeTab === 'comparison' ? 'var(--text-bright)' : 'var(--text-muted)',
-              borderLeft: activeTab === 'comparison' ? '3px solid var(--primary-glow)' : '3px solid transparent'
-            }}
-          >
-            <BarChart3 size={18} style={{ flexShrink: 0 }} />
-            {!sidebarCollapsed && <span>Metrics Comparison</span>}
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveTab('analytics');
-              setReviewThreadId(null);
-            }}
-            title={sidebarCollapsed ? "System Observability" : undefined}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-              gap: sidebarCollapsed ? '0' : '12px',
-              padding: sidebarCollapsed ? '12px 0' : '12px 16px',
-              fontSize: '14px',
-              fontWeight: 500,
-              borderRadius: 'var(--border-radius-sm)',
-              border: 'none',
-              cursor: 'pointer',
-              outline: 'none',
-              transition: 'all 0.2s ease',
-              width: '100%',
-              textAlign: 'left',
-              backgroundColor: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
-              color: activeTab === 'analytics' ? 'var(--text-bright)' : 'var(--text-muted)',
-              borderLeft: activeTab === 'analytics' ? '3px solid var(--primary-glow)' : '3px solid transparent'
-            }}
-          >
-            <Activity size={18} style={{ flexShrink: 0 }} />
-            {!sidebarCollapsed && <span>System Observability</span>}
-          </button>
-
-          {/* Staged review view indicator if active */}
-          {reviewThreadId && (
-            <button
-              onClick={() => setActiveTab('review')}
-              title={sidebarCollapsed ? "Report Draft Review" : undefined}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                gap: sidebarCollapsed ? '0' : '12px',
-                padding: sidebarCollapsed ? '12px 0' : '12px 16px',
-                fontSize: '14px',
-                fontWeight: 500,
-                borderRadius: 'var(--border-radius-sm)',
-                border: 'none',
-                cursor: 'pointer',
-                outline: 'none',
-                transition: 'all 0.2s ease',
-                width: '100%',
-                textAlign: 'left',
-                color: 'var(--accent-warning)',
-                backgroundColor: activeTab === 'review' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.04)',
-                borderLeft: activeTab === 'review' ? '3px solid var(--accent-warning)' : '3px solid transparent'
-              }}
-            >
-              <FileText size={18} style={{ flexShrink: 0 }} />
-              {!sidebarCollapsed && <span>Draft Review</span>}
-            </button>
-          )}
         </nav>
 
         {/* Sidebar Footer Profiles */}
@@ -511,7 +412,7 @@ export default function App() {
               fontWeight: 500
             }}>
               <span style={{ display: 'inline-block', width: '6px', height: '6px', backgroundColor: 'var(--primary-glow)', borderRadius: '50%' }} className="animate-spin-slow" />
-              <span>Active SSE Node Stream Active</span>
+              <span>Research in Progress</span>
             </div>
           )}
           
@@ -524,7 +425,7 @@ export default function App() {
             borderRadius: '4px',
             fontFamily: 'var(--font-mono)'
           }}>
-            Terminal CIK standard limit: 10 req/s
+            System Status: Connected & Stable
           </div>
         </header>
 
@@ -535,6 +436,10 @@ export default function App() {
             <Dashboard 
               onSelectThread={handleSelectHistoryThread}
               onNavigateToCockpit={() => setActiveTab('new_research')}
+              onResumeRunningResearch={(threadId, tickers) => {
+                handleStartActiveResearch(threadId, tickers);
+                setActiveTab('new_research');
+              }}
             />
           )}
 
@@ -551,37 +456,62 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'review' && reviewThreadId && (
-            <BriefReview 
-              threadId={reviewThreadId}
-              tickers={reviewTickers}
-              onNavigateBack={() => {
-                setReviewThreadId(null);
-                setActiveTab('dashboard');
-              }}
-            />
-          )}
-
-          {activeTab === 'history' && (
-            <ThreadHistory 
-              onSelectThread={handleSelectHistoryThread}
-              onNavigateToCockpit={(threadId, tickers) => {
-                handleStartActiveResearch(threadId, tickers);
-                setActiveTab('new_research');
-              }}
-            />
-          )}
-
-          {activeTab === 'comparison' && (
-            <Comparison 
-              onNavigateBack={() => setActiveTab('dashboard')}
-            />
-          )}
-
-          {activeTab === 'analytics' && (
-            <SystemAnalytics 
-              onNavigateBack={() => setActiveTab('dashboard')}
-            />
+          {activeTab === 'review' && (
+            reviewThreadId ? (
+              <BriefReview 
+                threadId={reviewThreadId}
+                tickers={reviewTickers}
+                onNavigateBack={() => {
+                  setReviewThreadId(null);
+                  setActiveTab('dashboard');
+                }}
+              />
+            ) : (
+              <div className="glass-panel animate-fade-in" style={{
+                padding: '48px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '20px',
+                minHeight: '350px',
+                border: '1px dashed var(--border-glass)'
+              }}>
+                <div style={{
+                  backgroundColor: 'rgba(139, 92, 246, 0.08)',
+                  color: 'var(--primary-glow)',
+                  borderRadius: '50%',
+                  padding: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '8px'
+                }}>
+                  <FileText size={32} />
+                </div>
+                <h3 className="font-display" style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-bright)' }}>
+                  No Active Report Selected
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '450px', lineHeight: '1.6', margin: 0 }}>
+                  You have not selected a report to review yet. Go to the Research Hub to view completed past reports, or start a new analysis study.
+                </p>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                  <button 
+                    className="btn-secondary" 
+                    onClick={() => setActiveTab('dashboard')}
+                  >
+                    Go to Research Hub
+                  </button>
+                  <button 
+                    className="btn-premium" 
+                    onClick={() => setActiveTab('new_research')}
+                  >
+                    Start AI Analyst
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
         </div>

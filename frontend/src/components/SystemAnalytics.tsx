@@ -3,11 +3,7 @@ import { api } from '../services/api';
 import type { AnalyticsResponse } from '../services/api';
 import { BarChart3, TrendingUp, DollarSign, Activity, Award, ShieldCheck, RefreshCw } from 'lucide-react';
 
-interface SystemAnalyticsProps {
-  onNavigateBack: () => void;
-}
-
-export function SystemAnalytics({ onNavigateBack }: SystemAnalyticsProps) {
+export function SystemAnalytics() {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [briefsEvaluations, setBriefsEvaluations] = useState<{
     ticker: string;
@@ -72,40 +68,25 @@ export function SystemAnalytics({ onNavigateBack }: SystemAnalyticsProps) {
   const details = analytics?.details || [];
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 className="font-display" style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-bright)' }}>
-            System Analytics & Observability
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
-            Monitor cumulative API tokens volumes, latencies, costs, and evaluator judges.
-          </p>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
-            className="btn-secondary" 
-            onClick={() => fetchAnalyticsData(true)} 
-            disabled={loading || refreshing}
-            style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <RefreshCw size={16} className={refreshing ? 'animate-spin-slow' : ''} />
-            <span>{refreshing ? 'Reloading...' : 'Refresh Logs'}</span>
-          </button>
-          
-          <button className="btn-secondary" onClick={onNavigateBack}>
-            Workspace Home
-          </button>
-        </div>
+      {/* Mini Controls Row */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+        <button 
+          className="btn-secondary" 
+          onClick={() => fetchAnalyticsData(true)} 
+          disabled={loading || refreshing}
+          style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
+        >
+          <RefreshCw size={14} className={refreshing ? 'animate-spin-slow' : ''} />
+          <span>{refreshing ? 'Refreshing...' : 'Refresh Logs'}</span>
+        </button>
       </div>
 
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '64px 0', gap: '16px' }}>
           <div style={{ width: '40px', height: '40px', border: '3px solid rgba(255,255,255,0.05)', borderTopColor: 'var(--primary-glow)', borderRadius: '50%' }} className="animate-spin-slow" />
-          <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Compiling telemetry data...</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Compiling cost and performance statistics...</span>
         </div>
       ) : error ? (
         <div style={{ color: 'var(--accent-danger)', textAlign: 'center', padding: '40px' }}>{error}</div>
@@ -120,44 +101,53 @@ export function SystemAnalytics({ onNavigateBack }: SystemAnalyticsProps) {
           }}>
             <div className="glass-panel" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifySelf: 'stretch', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)' }}>
-                <span style={{ fontSize: '13px' }}>Cumulative Costs</span>
+                <span style={{ fontSize: '13px' }}>Total Amount Spent</span>
                 <DollarSign size={18} style={{ color: 'var(--secondary-glow)' }} />
               </div>
               <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-bright)', marginTop: '8px' }}>
                 ${summary?.total_cost_usd.toFixed(4) || '0.00'}
               </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Based on active AI models cost
+              </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifySelf: 'stretch', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)' }}>
-                <span style={{ fontSize: '13px' }}>Total Token Volume</span>
+                <span style={{ fontSize: '13px' }}>AI Processing Volume</span>
                 <BarChart3 size={18} style={{ color: 'var(--primary-glow)' }} />
               </div>
               <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-bright)', marginTop: '8px' }}>
                 {((summary?.total_prompt_tokens || 0) + (summary?.total_completion_tokens || 0)).toLocaleString()}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                P: {summary?.total_prompt_tokens.toLocaleString()} | C: {summary?.total_completion_tokens.toLocaleString()}
+                Inputs: {summary?.total_prompt_tokens.toLocaleString()} | Outputs: {summary?.total_completion_tokens.toLocaleString()}
               </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifySelf: 'stretch', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)' }}>
-                <span style={{ fontSize: '13px' }}>Average Latency</span>
+                <span style={{ fontSize: '13px' }}>Average Research Speed</span>
                 <Activity size={18} style={{ color: 'var(--accent-warning)' }} />
               </div>
               <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-bright)', marginTop: '8px' }}>
                 {summary?.average_latency_seconds.toFixed(2) || '0.00'}s
               </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Average time taken per report
+              </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifySelf: 'stretch', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)' }}>
-                <span style={{ fontSize: '13px' }}>Telemetry Sessions</span>
+                <span style={{ fontSize: '13px' }}>Total Reports Generated</span>
                 <TrendingUp size={18} style={{ color: 'var(--accent-success)' }} />
               </div>
               <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-bright)', marginTop: '8px' }}>
                 {summary?.total_runs || 0}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Completed research runs
               </div>
             </div>
           </div>
@@ -174,12 +164,12 @@ export function SystemAnalytics({ onNavigateBack }: SystemAnalyticsProps) {
             <div className="glass-panel" style={{ padding: '28px' }}>
               <h3 className="font-display" style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Award size={18} style={{ color: 'var(--primary-glow)' }} />
-                <span>LLM-as-Judge Quality Audits</span>
+                <span>AI Quality Checker Assessments</span>
               </h3>
 
               {briefsEvaluations.length === 0 ? (
                 <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '32px 0', fontSize: '13px' }}>
-                  No judge audit records indexed yet. Approve a research draft to trigger audits.
+                  No quality evaluations recorded yet. Approve a draft to run checks.
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -189,10 +179,10 @@ export function SystemAnalytics({ onNavigateBack }: SystemAnalyticsProps) {
                         <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-bright)' }}>
                           {ev.ticker} - {ev.threadName.split(': ')[1] || ev.threadName}
                         </span>
-                        <div style={{ display: 'flex', gap: '8px', fontSize: '11px', fontWeight: 700 }}>
-                          <span style={{ color: 'var(--accent-success)' }}>F: {ev.score_factual.toFixed(1)}</span>
-                          <span style={{ color: 'var(--secondary-glow)' }}>C: {ev.score_clarity.toFixed(1)}</span>
-                          <span style={{ color: 'var(--accent-warning)' }}>R: {ev.score_coverage.toFixed(1)}</span>
+                        <div style={{ display: 'flex', gap: '12px', fontSize: '11px', fontWeight: 700 }}>
+                          <span style={{ color: 'var(--accent-success)' }}>Accuracy: {ev.score_factual.toFixed(1)}/5.0</span>
+                          <span style={{ color: 'var(--secondary-glow)' }}>Readability: {ev.score_clarity.toFixed(1)}/5.0</span>
+                          <span style={{ color: 'var(--accent-warning)' }}>Risks Coverage: {ev.score_coverage.toFixed(1)}/5.0</span>
                         </div>
                       </div>
                       <p style={{ fontSize: '12px', lineHeight: '1.6', color: 'var(--text-muted)', fontStyle: 'italic' }}>
@@ -208,12 +198,12 @@ export function SystemAnalytics({ onNavigateBack }: SystemAnalyticsProps) {
             <div className="glass-panel" style={{ padding: '28px' }}>
               <h3 className="font-display" style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ShieldCheck size={18} style={{ color: 'var(--secondary-glow)' }} />
-                <span>Execution Performance Logs</span>
+                <span>Research Speed & Cost Log</span>
               </h3>
 
               {details.length === 0 ? (
                 <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '32px 0', fontSize: '13px' }}>
-                  No telemetry logged.
+                  No activity logs recorded.
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '380px', overflowY: 'auto' }}>
@@ -234,7 +224,7 @@ export function SystemAnalytics({ onNavigateBack }: SystemAnalyticsProps) {
                           {det.thread_name.split(': ')[1] || det.thread_name}
                         </div>
                         <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          Tokens: {det.prompt_tokens + det.completion_tokens}
+                          Process Size: {(det.prompt_tokens + det.completion_tokens).toLocaleString()} units
                         </div>
                       </div>
 
@@ -256,7 +246,6 @@ export function SystemAnalytics({ onNavigateBack }: SystemAnalyticsProps) {
 
         </div>
       )}
-
     </div>
   );
 }

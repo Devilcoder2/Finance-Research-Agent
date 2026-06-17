@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import type { BriefItem, SectionAnnotation } from '../services/api';
 import { Award, Check, MessageSquare, ShieldAlert, X, CornerDownRight, RotateCcw } from 'lucide-react';
+import { Comparison } from './Comparison';
 
 interface BriefReviewProps {
   threadId: string;
@@ -11,7 +12,9 @@ interface BriefReviewProps {
 
 export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewProps) {
   const [briefs, setBriefs] = useState<BriefItem[]>([]);
-  const [activeTicker, setActiveTicker] = useState<string>(tickers[0] || '');
+  const [activeTicker, setActiveTicker] = useState<string>(
+    tickers.length > 1 ? 'compare' : (tickers[0] || '')
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +34,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
       const data = await api.getBriefs(threadId);
       setBriefs(data);
       if (data.length > 0 && !activeTicker) {
-        setActiveTicker(data[0].ticker);
+        setActiveTicker(tickers.length > 1 ? 'compare' : data[0].ticker);
       }
     } catch (err: any) {
       console.error(err);
@@ -111,7 +114,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
     { id: 'executive_summary', label: 'Executive Thesis Summary' },
     { id: 'business_overview', label: 'Business & Operations Model' },
     { id: 'financial_analysis', label: 'Quantitative & Financial Analysis' },
-    { id: 'risk_factors', label: 'Downside Risk Matrix' },
+    { id: 'risk_factors', label: 'Potential Business Risks' },
     { id: 'verdict', label: 'Analyst Valuation & Recommendation' },
   ];
 
@@ -122,26 +125,61 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 className="font-display" style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-bright)' }}>
-            Investment Reports cockpit
+            Report Viewer & Review
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
-            Review structured summaries, inspect auditor metrics, and execute approval triggers.
+            Review structured summaries, inspect quality scores, and finalize or request corrections.
           </p>
         </div>
         
         <button className="btn-secondary" onClick={onNavigateBack}>
-          Workspace Home
+          Back to Hub
         </button>
       </div>
 
       {/* Multi-ticker tab headers */}
-      {tickers.length > 1 && (
+      {(tickers.length > 1 || briefs.length > 1) && (
         <div style={{
           display: 'flex',
           borderBottom: '1px solid var(--border-glass)',
           gap: '8px',
           paddingBottom: '2px',
         }}>
+          {/* Compare Companies Tab */}
+          <button
+            onClick={() => {
+              setActiveTicker('compare');
+              setSubmitSuccess(null);
+              setError(null);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              outline: 'none',
+              cursor: 'pointer',
+              padding: '12px 24px',
+              fontWeight: 600,
+              fontSize: '14px',
+              color: activeTicker === 'compare' ? 'var(--text-bright)' : 'var(--text-muted)',
+              borderBottom: activeTicker === 'compare' ? '2px solid var(--primary-glow)' : '2px solid transparent',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span>Compare Companies</span>
+            <span style={{
+              fontSize: '10px',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              backgroundColor: activeTicker === 'compare' ? 'rgba(139, 92, 246, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+              color: activeTicker === 'compare' ? 'var(--primary-glow)' : 'var(--text-muted)',
+            }}>
+              Ready
+            </span>
+          </button>
+
           {tickers.map((t) => {
             const isActive = activeTicker === t;
             const briefItem = briefs.find(b => b.ticker === t);
@@ -210,6 +248,8 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
         }}>
           {error}
         </div>
+      ) : activeTicker === 'compare' ? (
+        <Comparison briefs={briefs} />
       ) : !activeBrief ? (
         <div style={{
           textAlign: 'center',
@@ -235,7 +275,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-glass)', paddingBottom: '16px' }}>
               <div>
                 <h3 className="font-display" style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-bright)' }}>
-                  {activeBrief.ticker} Analyst Synthesis Brief
+                  {activeBrief.ticker} AI Report Draft
                 </h3>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                   Revision count: {activeBrief.revision_count} • Created at {new Date(activeBrief.created_at).toLocaleDateString()}
@@ -285,7 +325,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
                       </h4>
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <MessageSquare size={12} />
-                        <span>Annotate</span>
+                        <span>Suggest Changes</span>
                       </span>
                     </div>
 
@@ -311,7 +351,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
                         gap: '8px',
                       }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-warning)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Analyst Feedback Annotations:
+                          Suggested Changes:
                         </div>
                         {savedAnnotations.map((ann, idx) => (
                           <div key={idx} style={{ fontSize: '12px', color: 'var(--text-normal)', display: 'flex', alignItems: 'start', gap: '6px' }}>
@@ -351,7 +391,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
               <div className="glass-panel" style={{ padding: '24px' }}>
                 <h3 className="font-display" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                   <Award size={16} style={{ color: 'var(--secondary-glow)' }} />
-                  <span>Auditor Judge Assessment</span>
+                  <span>AI Quality Scores</span>
                 </h3>
                 
                 {activeBrief.evaluations.map((ev, index) => (
@@ -369,7 +409,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Narrative Clarity</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Readability & Flow</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '80px', height: '6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '3px', overflow: 'hidden' }}>
                             <div style={{ width: `${(ev.score_clarity / 5) * 100}%`, height: '100%', backgroundColor: 'var(--primary-glow)' }} />
@@ -379,7 +419,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Downside Risk Coverage</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Risk Warning Coverage</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '80px', height: '6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '3px', overflow: 'hidden' }}>
                             <div style={{ width: `${(ev.score_coverage / 5) * 100}%`, height: '100%', backgroundColor: 'var(--accent-warning)' }} />
@@ -412,7 +452,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
               <div className="glass-panel animate-fade-in" style={{ padding: '24px', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-bright)' }}>
-                    Add Comment for: <span style={{ color: 'var(--primary-glow)' }}>{BRIEFS_SECTIONS.find((s: { id: string; label: string }) => s.id === selectedSection)?.label}</span>
+                    Suggest Changes for: <span style={{ color: 'var(--primary-glow)' }}>{BRIEFS_SECTIONS.find((s: { id: string; label: string }) => s.id === selectedSection)?.label}</span>
                   </h4>
                   <button 
                     onClick={() => setSelectedSection(null)}
@@ -435,7 +475,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
                     Cancel
                   </button>
                   <button className="btn-premium" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={handleAddAnnotation}>
-                    Staged Annotation
+                    Suggest Changes
                   </button>
                 </div>
               </div>
@@ -444,7 +484,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
             {/* Decision Controls Card */}
             <div className="glass-panel" style={{ padding: '24px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '16px' }}>
-                Decision Center
+                Approve or Request Changes
               </h3>
 
               {submitSuccess && (
@@ -497,7 +537,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
                   gap: '8px'
                 }}>
                   <ShieldAlert size={16} style={{ flexShrink: 0 }} />
-                  <span>Warning: Reached {activeBrief.revision_count}/3 revision cycles. Next reject will abort the thread run.</span>
+                  <span>You have requested revisions {activeBrief.revision_count}/3 times. If rejected again, the process will cancel to avoid infinite loops.</span>
                 </div>
               )}
 
@@ -517,7 +557,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
                   onClick={() => handleSubmitDecision('approve')}
                 >
                   <Check size={18} />
-                  <span>{submitting ? 'Submitting decision...' : 'Authorize Publication'}</span>
+                  <span>{submitting ? 'Submitting decision...' : 'Approve & Finalize Report'}</span>
                 </button>
 
                 <button
@@ -536,7 +576,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
                   onClick={() => handleSubmitDecision('reject')}
                 >
                   <RotateCcw size={16} />
-                  <span>Reject & Request Revision</span>
+                  <span>Request Corrections</span>
                 </button>
               </div>
 
@@ -549,7 +589,7 @@ export function BriefReview({ threadId, tickers, onNavigateBack }: BriefReviewPr
                 borderTop: '1px solid rgba(255, 255, 255, 0.02)',
                 paddingTop: '16px',
               }}>
-                Rejections loop the briefs back to Synthesis with revision flags. Max 3 iterations.
+                Requesting corrections sends the draft back to the AI Analyst with your notes to refine details. Max 3 iterations.
               </div>
             </div>
 
